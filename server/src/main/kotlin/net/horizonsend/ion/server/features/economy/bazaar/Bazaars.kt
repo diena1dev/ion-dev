@@ -6,6 +6,7 @@ import com.google.common.cache.CacheBuilder
 import com.google.common.cache.CacheLoader
 import com.google.common.cache.LoadingCache
 import com.mongodb.client.FindIterable
+import io.papermc.paper.adventure.PaperAdventure
 import net.horizonsend.ion.common.database.Oid
 import net.horizonsend.ion.common.database.schema.economy.BazaarItem
 import net.horizonsend.ion.common.database.schema.misc.SLPlayer
@@ -31,8 +32,10 @@ import net.horizonsend.ion.server.miscellaneous.utils.Tasks
 import net.horizonsend.ion.server.miscellaneous.utils.VAULT_ECO
 import net.horizonsend.ion.server.miscellaneous.utils.displayNameComponent
 import net.horizonsend.ion.server.miscellaneous.utils.displayNameString
+import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.Component.text
 import net.kyori.adventure.text.format.NamedTextColor
+import net.minecraft.world.item.CreativeModeTabs
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
@@ -371,5 +374,23 @@ object Bazaars : IonServerComponent() {
 			add(remainder)
 		}
 		return Pair(fullStacks, remainder)
+	}
+
+	data class ItemCategory(
+		val displayName: Component,
+		val displayItem: GuiItem,
+		val items: Collection<String>
+	)
+
+	private val itemCategories: List<ItemCategory> = mutableListOf<ItemCategory>().apply {
+		val nmsCategories = CreativeModeTabs.allTabs()
+
+		addAll(nmsCategories.map {
+			ItemCategory(
+				displayName = PaperAdventure.asAdventure(it.displayName),
+				displayItem = GuiItem(it.iconItem.asBukkitCopy()),
+				items = it.displayItems.map { nmsItemStack -> toItemString(nmsItemStack.asBukkitCopy()) }
+			)
+		})
 	}
 }
