@@ -15,6 +15,7 @@ import net.horizonsend.ion.server.IonServer
 import net.horizonsend.ion.server.miscellaneous.utils.Skins
 import net.horizonsend.ion.server.miscellaneous.utils.Tasks
 import net.horizonsend.ion.server.miscellaneous.utils.setDisplayNameAndGet
+import net.kyori.adventure.text.Component
 import net.md_5.bungee.api.ChatColor.RED
 import net.wesjd.anvilgui.AnvilGUI
 import org.bukkit.Bukkit
@@ -32,6 +33,13 @@ fun GuiItem.name(text: String?): GuiItem = apply { if (text != null) item.setDis
 fun GuiItem.lore(text: String): GuiItem {
 	val meta = item.itemMeta
 	meta.lore = text.split("\n")
+	item.itemMeta = meta
+	return this
+}
+
+fun GuiItem.lore(lines: MutableList<Component>): GuiItem {
+	val meta = item.itemMeta
+	meta.lore(lines)
 	item.itemMeta = meta
 	return this
 }

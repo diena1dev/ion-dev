@@ -8,6 +8,7 @@ import co.aikar.commands.annotation.CommandPermission
 import co.aikar.commands.annotation.Default
 import co.aikar.commands.annotation.Description
 import co.aikar.commands.annotation.Subcommand
+import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import net.horizonsend.ion.common.database.schema.economy.BazaarItem
 import net.horizonsend.ion.common.database.schema.economy.CityNPC
 import net.horizonsend.ion.common.database.schema.nations.Settlement
@@ -23,6 +24,7 @@ import net.horizonsend.ion.server.features.economy.city.CityNPCs
 import net.horizonsend.ion.server.features.economy.city.TradeCities
 import net.horizonsend.ion.server.features.economy.city.TradeCityData
 import net.horizonsend.ion.server.features.economy.city.TradeCityType
+import net.horizonsend.ion.server.features.nations.gui.input
 import net.horizonsend.ion.server.features.nations.gui.playerClicker
 import net.horizonsend.ion.server.features.nations.region.Regions
 import net.horizonsend.ion.server.features.nations.region.types.RegionTerritory
@@ -35,10 +37,13 @@ import net.horizonsend.ion.server.miscellaneous.utils.VAULT_ECO
 import net.horizonsend.ion.server.miscellaneous.utils.displayNameComponent
 import net.horizonsend.ion.server.miscellaneous.utils.displayNameString
 import net.horizonsend.ion.server.miscellaneous.utils.slPlayerId
+import net.kyori.adventure.text.Component.empty
 import net.kyori.adventure.text.Component.text
 import net.kyori.adventure.text.format.NamedTextColor
+import net.kyori.adventure.text.format.NamedTextColor.RED
 import net.kyori.adventure.text.format.TextDecoration
 import org.bukkit.DyeColor
+import org.bukkit.Material
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
@@ -344,15 +349,46 @@ object BazaarCommand : SLCommand() {
 				// attempt to get the planet icon, just use a detonator if unavailable
 				// TODO: When porting over planet icons, change the legacy uranium icon too
 				val item: CustomItem = Space.getPlanet(territory.world)?.planetIcon ?: CustomItems.MINERAL_URANIUM
+				val remote: Boolean = Regions.findFirstOf<RegionTerritory>(sender.location)?.id != territoryId
 
 				return@map guiButton(item.itemStack(1)) {
 					val clicker: Player = playerClicker
-					val remote: Boolean = Regions.findFirstOf<RegionTerritory>(clicker.location)?.id != territoryId
+
 					Bazaars.openMainMenu(territoryId, clicker, remote)
-				}.setName("${city.displayName} on ${territory.world}")
+				}
+				.setName(text("${city.displayName} on ${territory.world}").decoration(TextDecoration.ITALIC, false))
+				.setLoreComponent(listOf(
+					text("View items sold at ${city.displayName}", NamedTextColor.AQUA).decoration(TextDecoration.ITALIC, false),
+					if (remote) text("Warning: You are not within this city's territory. Purchases will have a 4x cost penalty.", RED) else empty()
+				))
 			}
 
-			sender.openPaginatedMenu("Remote Bazaar", cityItems)
+			val searchButton = guiButton(Material.NAME_TAG) {
+				Tasks.sync {
+					sender.input("Enter Item Name") { _, input ->
+						val searchBackButton = guiButton(Material.IRON_DOOR) {
+							Tasks.sync {
+								onBrowse(sender)
+							}
+						}.setName(text("Go Back to main menu"))
+
+						Tasks.async {
+							val items: List<GuiItem> = Bazaars.getGuiItems(Bazaars.searchAll(input))
+
+							Tasks.sync {
+								sender.openPaginatedMenu("Search Query : $input", items, listOf(searchBackButton))
+							}
+						}
+
+						null
+					}
+
+				}
+			}
+				.setName(text("Search All Cities").decoration(TextDecoration.ITALIC, false))
+				.setLoreComponent(text("Remote purchases will have a 4x cost penalty.", RED).decoration(TextDecoration.ITALIC, false))
+
+			sender.openPaginatedMenu("Remote Bazaar", cityItems, listOf(searchButton))
 		}
 	}
 

@@ -75,6 +75,11 @@ object MenuHelper {
 		item.itemMeta = item.itemMeta?.apply { lore(lines) }
 	}
 
+	/** Only sets the first line of the lore. */
+	fun GuiItem.setLoreComponent(line: Component): GuiItem = apply {
+		item.itemMeta = item.itemMeta?.apply { lore(listOf(line)) }
+	}
+
 	fun GuiItem.setRichLore(lines: List<String>): GuiItem = apply {
 		item.itemMeta = item.itemMeta.apply {
 			val serialized = lines.map { MiniMessage.miniMessage().deserialize(it) }
