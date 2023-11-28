@@ -6,7 +6,6 @@ import com.google.common.cache.CacheBuilder
 import com.google.common.cache.CacheLoader
 import com.google.common.cache.LoadingCache
 import com.mongodb.client.FindIterable
-import io.papermc.paper.adventure.PaperAdventure
 import net.horizonsend.ion.common.database.Oid
 import net.horizonsend.ion.common.database.schema.economy.BazaarItem
 import net.horizonsend.ion.common.database.schema.misc.SLPlayer
@@ -31,6 +30,7 @@ import net.horizonsend.ion.server.features.nations.region.Regions
 import net.horizonsend.ion.server.features.nations.region.types.RegionTerritory
 import net.horizonsend.ion.server.miscellaneous.utils.MenuHelper
 import net.horizonsend.ion.server.miscellaneous.utils.MenuHelper.setLoreComponent
+import net.horizonsend.ion.server.miscellaneous.utils.MenuHelper.setName
 import net.horizonsend.ion.server.miscellaneous.utils.Tasks
 import net.horizonsend.ion.server.miscellaneous.utils.VAULT_ECO
 import net.horizonsend.ion.server.miscellaneous.utils.displayNameComponent
@@ -42,8 +42,6 @@ import net.kyori.adventure.text.format.NamedTextColor.AQUA
 import net.kyori.adventure.text.format.NamedTextColor.RED
 import net.kyori.adventure.text.format.NamedTextColor.WHITE
 import net.kyori.adventure.text.format.TextDecoration
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText
-import net.minecraft.world.item.CreativeModeTabs
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
@@ -68,28 +66,28 @@ object Bazaars : IonServerComponent() {
     fun onClickBazaarNPC(player: Player, city: TradeCityData) {
 		val territoryId: Oid<Territory> = city.territoryId
 
-		openMainMenu(territoryId, player, false)
+		openCityMenu(territoryId, player, false)
 	}
 
-	fun openMainMenu(territoryId: Oid<Territory>, player: Player, remote: Boolean): Unit = Tasks.async {
+	fun openCityMenu(territoryId: Oid<Territory>, player: Player, remote: Boolean): Unit = Tasks.async {
 		MenuHelper.run {
 			val backButton = guiButton(Material.IRON_DOOR) {
 				Tasks.sync {
 					BazaarCommand.onBrowse(player)
 				}
-			}.setName(text("Go Back to City Selection"))
+			}.setName(text("Go Back to City Selection").decoration(TextDecoration.ITALIC, false))
 
 			val searchButton = guiButton(Material.NAME_TAG) {
 				Tasks.sync {
 					player.input("Enter Item Name") { _, input ->
 						val searchBackButton = guiButton(Material.IRON_DOOR) {
 							Tasks.sync {
-								openMainMenu(territoryId, player, remote)
+								openCityMenu(territoryId, player, remote)
 							}
-						}.setName(text("Go Back to City"))
+						}.setName(text("Go Back to City").decoration(TextDecoration.ITALIC, false))
 
 						Tasks.async {
-							val items: List<GuiItem> = getGuiItems(territoryId, remote, search(territoryId, input))
+							val items: List<GuiItem> = getGuiItems(search(territoryId, input), CityInfo(territoryId, remote))
 
 							Tasks.sync {
 								player.openPaginatedMenu("Search Query : $input", items, listOf(searchBackButton))
@@ -98,16 +96,15 @@ object Bazaars : IonServerComponent() {
 
 						null
 					}
-
 				}
-			}.setName(text("Search"))
+			}.setName(text("Search").decoration(TextDecoration.ITALIC, false))
 
 			val titleButtons: List<GuiItem> = listOf(
 				backButton,
 				searchButton
 			)
 
-			val items: List<GuiItem> = getGuiItems(territoryId, remote, getCityItems(territoryId))
+			val items: List<GuiItem> = getCityCategories(territoryId, remote)
 			val cityName = TradeCities.getIfCity(Regions[territoryId])?.displayName ?: return@async player.serverError("Territory is no longer a city")
 
 			Tasks.sync {
@@ -116,27 +113,71 @@ object Bazaars : IonServerComponent() {
 		}
 	}
 
-	private fun getGuiItems(territoryId: Oid<Territory>, remote: Boolean, bazaarItems: FindIterable<BazaarItem>): List<GuiItem> = getGuiItems(
-		territoryId, remote, bazaarItems.descendingSort(BazaarItem::stock).toList()
-	)
+	data class CityInfo(val territoryId: Oid<Territory>, val remote: Boolean)
 
-	private fun getGuiItems(territoryId: Oid<Territory>, remote: Boolean, bazaarItems: List<BazaarItem>): List<GuiItem> =
-		bazaarItems
-			.map(BazaarItem::itemString)
-			// only one per item string
-			.distinct()
-			// convert to GuiItem
-			.map { itemString ->
-				val item: ItemStack = fromItemString(itemString)
-				return@map MenuHelper.guiButton(item) {
-					openItemTypeMenu(playerClicker, territoryId, itemString, SortingBy.STOCK, true, remote)
-				}
-				.setLoreComponent(listOf(
-					text("View all $itemString on sale at this city", AQUA).decoration(TextDecoration.ITALIC, false)
-				))
+	fun getCityCategories(territoryId: Oid<Territory>, remote: Boolean): List<GuiItem> {
+		return ItemCategory.all().map { category ->
+			GuiItem(category.displayItem) { onClick ->
+				openCategoryMenu(category, territoryId, onClick.playerClicker, remote)
 			}
+			.setName(category.displayName)
+		}
+	}
 
-	fun getGuiItems(bazaarItems: List<BazaarItem>): List<GuiItem> =
+	fun openCategoryMenu(category: ItemCategory, territoryId: Oid<Territory>, player: Player, remote: Boolean) = Tasks.async {
+		MenuHelper.run {
+			val backButton = guiButton(Material.IRON_DOOR) {
+				Tasks.sync {
+					openCityMenu(territoryId, player, remote)
+				}
+			}.setName(text("Go Back to Category Selection").decoration(TextDecoration.ITALIC, false))
+
+			val searchButton = guiButton(Material.NAME_TAG) {
+				Tasks.sync {
+					player.input("Enter Item Name") { _, input ->
+						val searchBackButton = guiButton(Material.IRON_DOOR) {
+							Tasks.sync {
+								openCityMenu(territoryId, player, remote)
+							}
+						}.setName(text("Go Back to City").decoration(TextDecoration.ITALIC, false))
+
+						Tasks.async {
+							val items: List<GuiItem> = getGuiItems(search(territoryId, input), CityInfo(territoryId, remote))
+
+							Tasks.sync {
+								player.openPaginatedMenu("Search Query : $input", items, listOf(searchBackButton))
+							}
+						}
+
+						null
+					}
+				}
+			}.setName(text("Search").decoration(TextDecoration.ITALIC, false))
+
+			val titleButtons: List<GuiItem> = listOf(
+				backButton,
+				searchButton
+			)
+
+			val items: List<GuiItem> = getCategoryItems(category, getCityItems(territoryId), CityInfo(territoryId, remote))
+			val cityName = TradeCities.getIfCity(Regions[territoryId])?.displayName ?: return@async player.serverError("Territory is no longer a city")
+
+			Tasks.sync {
+				player.openPaginatedMenu("City: $cityName", items, titleButtons)
+			}
+		}
+	}
+
+	private fun getCategoryItems(category: ItemCategory, allItems: FindIterable<BazaarItem>, cityInfo: CityInfo?): List<GuiItem> {
+		println(category.items)
+		val items = allItems.filter { category.items.contains(it.itemString) }
+
+		return getGuiItems(items, cityInfo)
+	}
+
+	private fun getGuiItems(bazaarItems: FindIterable<BazaarItem>, cityInfo: CityInfo?): List<GuiItem> = getGuiItems(bazaarItems.toList(), cityInfo)
+
+	fun getGuiItems(bazaarItems: List<BazaarItem>, cityInfo: CityInfo?): List<GuiItem> =
 		bazaarItems
 			.map(BazaarItem::itemString)
 			// only one per item string
@@ -144,8 +185,19 @@ object Bazaars : IonServerComponent() {
 			// convert to GuiItem
 			.map { itemString ->
 				val item: ItemStack = fromItemString(itemString)
-				return@map MenuHelper.guiButton(item) {
-					openItemTypeMenu(playerClicker, itemString, SortingBy.STOCK, true)
+
+				return@map if (cityInfo != null) {
+					val territoryId = cityInfo.territoryId
+					val remote = cityInfo.remote
+
+					return@map MenuHelper.guiButton(item) { openItemTypeMenu(playerClicker, territoryId, itemString, SortingBy.STOCK, true, remote) }
+						.setLoreComponent(listOf(
+							text("View all $itemString on sale at this city", AQUA).decoration(TextDecoration.ITALIC, false)
+						))
+				} else {
+					MenuHelper.guiButton(item) {
+						openItemTypeMenu(playerClicker, itemString, SortingBy.STOCK, true)
+					}
 				}
 			}
 
@@ -194,9 +246,9 @@ object Bazaars : IonServerComponent() {
 					}
 					.setName(priceString)
 					.setLoreComponent(listOf(
-						Component.textOfChildren(text("Seller: ", AQUA), text(sellerName)).decoration(TextDecoration.ITALIC, false),
-						Component.textOfChildren(text("Stock: ", AQUA), text(stock)).decoration(TextDecoration.ITALIC, false),
-						Component.textOfChildren(text("City: ", AQUA), text(city.displayName)).decoration(TextDecoration.ITALIC, false),
+						Component.textOfChildren(text("Seller: ", AQUA), text(sellerName, WHITE)).decoration(TextDecoration.ITALIC, false),
+						Component.textOfChildren(text("Stock: ", AQUA), text(stock, WHITE)).decoration(TextDecoration.ITALIC, false),
+						Component.textOfChildren(text("City: ", AQUA), text(city.displayName, WHITE)).decoration(TextDecoration.ITALIC, false),
 					))
 				}
 				.toList()
@@ -228,7 +280,7 @@ object Bazaars : IonServerComponent() {
 					playerClicker.closeInventory()
 					openItemTypeMenu(playerClicker, terrId, item, newSort, isLeftClick, remote)
 				}.setName("Sort By $newSort").setLore(lore)
-			} + guiButton(Material.IRON_DOOR) { openMainMenu(terrId, playerClicker, remote) }.setName("Go Back")
+			} + guiButton(Material.IRON_DOOR) { openCityMenu(terrId, playerClicker, remote) }.setName("Go Back")
 
 			val items: List<GuiItem> = BazaarItem
 				.find(and(BazaarItem::cityTerritory eq terrId, BazaarItem::itemString eq item, BazaarItem::stock gt 0))
@@ -459,25 +511,5 @@ object Bazaars : IonServerComponent() {
 			add(remainder)
 		}
 		return Pair(fullStacks, remainder)
-	}
-
-	data class ItemCategory(
-		val identifier: String,
-		val displayName: Component,
-		val displayItem: GuiItem,
-		val items: Collection<String>
-	)
-
-	private val itemCategories: List<ItemCategory> = mutableListOf<ItemCategory>().apply {
-		val nmsCategories = CreativeModeTabs.allTabs()
-
-		addAll(nmsCategories.map {
-			ItemCategory(
-				identifier = plainText().serialize(PaperAdventure.asAdventure(it.displayName)),
-				displayName = PaperAdventure.asAdventure(it.displayName),
-				displayItem = GuiItem(it.iconItem.asBukkitCopy()),
-				items = it.displayItems.map { nmsItemStack -> toItemString(nmsItemStack.asBukkitCopy()) }
-			)
-		})
 	}
 }

@@ -354,7 +354,7 @@ object BazaarCommand : SLCommand() {
 				return@map guiButton(item.itemStack(1)) {
 					val clicker: Player = playerClicker
 
-					Bazaars.openMainMenu(territoryId, clicker, remote)
+					Bazaars.openCityMenu(territoryId, clicker, remote)
 				}
 				.setName(text("${city.displayName} on ${territory.world}").decoration(TextDecoration.ITALIC, false))
 				.setLoreComponent(listOf(
@@ -373,7 +373,7 @@ object BazaarCommand : SLCommand() {
 						}.setName(text("Go Back to main menu"))
 
 						Tasks.async {
-							val items: List<GuiItem> = Bazaars.getGuiItems(Bazaars.searchAll(input))
+							val items: List<GuiItem> = Bazaars.getGuiItems(Bazaars.searchAll(input), null)
 
 							Tasks.sync {
 								sender.openPaginatedMenu("Search Query : $input", items, listOf(searchBackButton))
