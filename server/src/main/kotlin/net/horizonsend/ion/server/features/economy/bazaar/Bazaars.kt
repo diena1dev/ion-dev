@@ -116,8 +116,14 @@ object Bazaars : IonServerComponent() {
 
 	data class CityInfo(val territoryId: Oid<Territory>, val remote: Boolean)
 
-	fun getCityCategories(territoryId: Oid<Territory>, remote: Boolean): List<GuiItem> {
-		return ItemCategory.all().map { category ->
+	private fun getCityCategories(territoryId: Oid<Territory>, remote: Boolean): List<GuiItem> {
+		val cityItems = getCityItems(territoryId)
+
+		val containedCategories = ItemCategory.all().filter {
+			category -> cityItems.any { category.items.contains(it.itemString) }
+		}
+
+		return containedCategories.map { category ->
 			guiButton(category.displayItem) {
 				openCategoryMenu(category, territoryId, playerClicker, remote)
 			}
@@ -125,7 +131,7 @@ object Bazaars : IonServerComponent() {
 		}
 	}
 
-	fun openCategoryMenu(category: ItemCategory, territoryId: Oid<Territory>, player: Player, remote: Boolean) = Tasks.async {
+	private fun openCategoryMenu(category: ItemCategory, territoryId: Oid<Territory>, player: Player, remote: Boolean) = Tasks.async {
 		MenuHelper.run {
 			val backButton = guiButton(Material.IRON_DOOR) {
 				Tasks.sync {
@@ -189,11 +195,22 @@ object Bazaars : IonServerComponent() {
 				return@map if (cityInfo != null) {
 					val territoryId = cityInfo.territoryId
 					val remote = cityInfo.remote
+					val items = BazaarItem.count(and(BazaarItem::cityTerritory eq territoryId, BazaarItem::itemString eq itemString, BazaarItem::stock gt 0))
+
+					val lore = if (items > 1) {
+						listOf(text("View all $itemString on sale at this city", AQUA).decoration(TextDecoration.ITALIC, false))
+					} else {
+						val listing = BazaarItem.findOne(and(BazaarItem::cityTerritory eq territoryId, BazaarItem::itemString eq itemString, BazaarItem::stock gt 0))!!
+						val sellerName = SLPlayer.getName(listing.seller)!!
+
+						listOf(
+							Component.textOfChildren(text("Seller: ", AQUA), text(sellerName)).decoration(TextDecoration.ITALIC, false),
+							Component.textOfChildren(text("Stock: ", AQUA), text(listing.stock)).decoration(TextDecoration.ITALIC, false)
+						)
+					}
 
 					return@map MenuHelper.guiButton(item) { openItemTypeMenu(playerClicker, territoryId, itemString, SortingBy.STOCK, true, remote) }
-						.setLoreComponent(listOf(
-							text("View all $itemString on sale at this city", AQUA).decoration(TextDecoration.ITALIC, false)
-						))
+						.setLoreComponent(lore)
 				} else {
 					MenuHelper.guiButton(item) {
 						openItemTypeMenu(playerClicker, itemString, SortingBy.STOCK, true)
