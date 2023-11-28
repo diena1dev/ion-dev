@@ -1,5 +1,7 @@
 package net.horizonsend.ion.server.features.economy.bazaar
 
+import net.horizonsend.ion.server.miscellaneous.registrations.legacy.CustomItems as LegacyCustomItems
+import net.horizonsend.ion.server.features.customitems.CustomItems
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.Component.text
 import net.kyori.adventure.text.format.TextDecoration
@@ -1155,6 +1157,8 @@ data class ItemCategory(
 				Material.MUSIC_DISC_OTHERSIDE.name,
 				Material.MUSIC_DISC_5.name,
 				Material.MUSIC_DISC_PIGSTEP.name,
+				LegacyCustomItems.POWER_TOOL_DRILL.id,
+				LegacyCustomItems.POWER_TOOL_CHAINSAW.id,
 			)
 		)
 
@@ -1215,6 +1219,31 @@ data class ItemCategory(
 				Material.CROSSBOW.name,
 				Material.ARROW.name,
 				Material.SPECTRAL_ARROW.name,
+				CustomItems.PISTOL.identifier,
+				CustomItems.SUBMACHINE_BLASTER.identifier,
+				CustomItems.RIFLE.identifier,
+				CustomItems.SHOTGUN.identifier,
+				CustomItems.CANNON.identifier,
+				CustomItems.SNIPER.identifier,
+				CustomItems.GUN_BARREL.identifier,
+				CustomItems.PISTOL_RECEIVER.identifier,
+				CustomItems.RIFLE_RECEIVER.identifier,
+				CustomItems.SMB_RECEIVER.identifier,
+				CustomItems.SNIPER_RECEIVER.identifier,
+				CustomItems.SHOTGUN_RECEIVER.identifier,
+				CustomItems.CANNON_RECEIVER.identifier,
+				CustomItems.DETONATOR.identifier,
+				CustomItems.PUMPKIN_GRENADE.identifier,
+				LegacyCustomItems.POWER_MODULE_SHOCK_ABSORBING.id,
+				LegacyCustomItems.POWER_MODULE_SPEED_BOOSTING.id,
+				LegacyCustomItems.POWER_MODULE_ROCKET_BOOSTING.id,
+				LegacyCustomItems.POWER_MODULE_NIGHT_VISION.id,
+				LegacyCustomItems.POWER_MODULE_ENVIRONMENT.id,
+				LegacyCustomItems.POWER_MODULE_PRESSURE_FIELD.id,
+				LegacyCustomItems.POWER_ARMOR_HELMET.id,
+				LegacyCustomItems.POWER_ARMOR_CHESTPLATE.id,
+				LegacyCustomItems.POWER_ARMOR_LEGGINGS.id,
+				LegacyCustomItems.POWER_ARMOR_BOOTS.id,
 			)
 		)
 
@@ -1383,6 +1412,28 @@ data class ItemCategory(
 				Material.RIB_ARMOR_TRIM_SMITHING_TEMPLATE.name,
 				Material.SPIRE_ARMOR_TRIM_SMITHING_TEMPLATE.name,
 				Material.EXPERIENCE_BOTTLE.name,
+				LegacyCustomItems.MINERAL_TITANIUM.id,
+				LegacyCustomItems.MINERAL_TITANIUM.ore.id,
+				LegacyCustomItems.MINERAL_TITANIUM.fullBlock.id,
+				LegacyCustomItems.MINERAL_URANIUM.id,
+				LegacyCustomItems.MINERAL_URANIUM.ore.id,
+				LegacyCustomItems.MINERAL_URANIUM.fullBlock.id,
+				LegacyCustomItems.MINERAL_ALUMINUM.id,
+				LegacyCustomItems.MINERAL_ALUMINUM.ore.id,
+				LegacyCustomItems.MINERAL_ALUMINUM.fullBlock.id,
+				LegacyCustomItems.MINERAL_CHETHERITE.id,
+				LegacyCustomItems.MINERAL_CHETHERITE.ore.id,
+				LegacyCustomItems.MINERAL_CHETHERITE.fullBlock.id,
+				CustomItems.CIRCUITRY.identifier,
+				CustomItems.GAS_CANISTER_EMPTY.identifier,
+				CustomItems.GAS_CANISTER_CHLORINE.identifier,
+				CustomItems.GAS_CANISTER_CARBON_DIOXIDE.identifier,
+				CustomItems.GAS_CANISTER_HELIUM.identifier,
+				CustomItems.GAS_CANISTER_FLUORINE.identifier,
+				CustomItems.GAS_CANISTER_HYDROGEN.identifier,
+				CustomItems.GAS_CANISTER_METHANE.identifier,
+				CustomItems.GAS_CANISTER_NITROGEN.identifier,
+				CustomItems.GAS_CANISTER_OXYGEN.identifier,
 			)
 		)
 
