@@ -247,7 +247,7 @@ object Bazaars : IonServerComponent() {
 					?: error("$territory is no longer a city!")
 
 				return@map MenuHelper.guiButton(itemStack) {
-					openPurchaseMenu(playerClicker, bazaarItem, sellerName, 0, remote)
+					openPurchaseMenu(playerClicker, bazaarItem, sellerName, 0, remote, false)
 				}
 				.setName(priceString)
 				.setLoreComponent(listOf(
@@ -299,7 +299,7 @@ object Bazaars : IonServerComponent() {
 		if (items.count() == 1) {
 			val bazaarItem = items.first()!!
 
-			Tasks.sync { openPurchaseMenu(player, bazaarItem, SLPlayer.getName(bazaarItem.seller)!!, 0, remote) }
+			Tasks.sync { openPurchaseMenu(player, bazaarItem, SLPlayer.getName(bazaarItem.seller)!!, 0, remote, true) }
 			return@async
 		}
 
@@ -321,7 +321,8 @@ object Bazaars : IonServerComponent() {
 		item: BazaarItem,
 		sellerName: String,
 		currentAmount: Int,
-		remote: Boolean
+		remote: Boolean,
+		bypassed: Boolean
 	) {
 		MenuHelper.apply {
 			val pane = outlinePane(0, 0, 9, 1)
@@ -344,7 +345,7 @@ object Bazaars : IonServerComponent() {
 										if (priceMult > 1) " (Price multiplied x $priceMult due to browsing remotely)" else ""
 								)
 							} else {
-								openPurchaseMenu(playerClicker, item, sellerName, newAmount, remote)
+								openPurchaseMenu(playerClicker, item, sellerName, newAmount, remote, false)
 							}
 						}
 					}.setName((if (amount < 0) "Subtract" else "Add") + " ${amount.absoluteValue}")
@@ -359,7 +360,10 @@ object Bazaars : IonServerComponent() {
 			addButton(32)
 			addButton(64)
 
-			pane.addItem(backButton { openItemTypeMenu(it, item.cityTerritory, item.itemString, SortingBy.STOCK, true, remote) })
+			pane.addItem(backButton {
+				if (bypassed) openItemTypeMenu(it, item.cityTerritory, item.itemString, SortingBy.STOCK, true, remote) else
+					openCityMenu(item.cityTerritory, player, remote)
+			})
 
 			val name = fromItemString(item.itemString).displayNameString
 
@@ -453,9 +457,7 @@ object Bazaars : IonServerComponent() {
 					text(" due to browsing remotely)", YELLOW))
 				)
 
-				player.sendMessage(
-					buyMessage
-				)
+				player.sendMessage(buyMessage)
 			}
 		}
 	}
