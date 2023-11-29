@@ -24,12 +24,12 @@ import net.horizonsend.ion.server.features.economy.city.TradeCities
 import net.horizonsend.ion.server.features.economy.city.TradeCityData
 import net.horizonsend.ion.server.features.economy.city.TradeCityType
 import net.horizonsend.ion.server.features.nations.gui.guiButton
-import net.horizonsend.ion.server.features.nations.gui.input
 import net.horizonsend.ion.server.features.nations.gui.lore
 import net.horizonsend.ion.server.features.nations.gui.playerClicker
 import net.horizonsend.ion.server.features.nations.region.Regions
 import net.horizonsend.ion.server.features.nations.region.types.RegionTerritory
 import net.horizonsend.ion.server.miscellaneous.utils.MenuHelper
+import net.horizonsend.ion.server.miscellaneous.utils.MenuHelper.setLore
 import net.horizonsend.ion.server.miscellaneous.utils.MenuHelper.setLoreComponent
 import net.horizonsend.ion.server.miscellaneous.utils.MenuHelper.setName
 import net.horizonsend.ion.server.miscellaneous.utils.Tasks
@@ -37,11 +37,15 @@ import net.horizonsend.ion.server.miscellaneous.utils.VAULT_ECO
 import net.horizonsend.ion.server.miscellaneous.utils.displayNameComponent
 import net.horizonsend.ion.server.miscellaneous.utils.displayNameString
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.Component.empty
 import net.kyori.adventure.text.Component.text
+import net.kyori.adventure.text.Component.textOfChildren
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.NamedTextColor.AQUA
+import net.kyori.adventure.text.format.NamedTextColor.GOLD
 import net.kyori.adventure.text.format.NamedTextColor.RED
 import net.kyori.adventure.text.format.NamedTextColor.WHITE
+import net.kyori.adventure.text.format.NamedTextColor.YELLOW
 import net.kyori.adventure.text.format.TextDecoration
 import org.bukkit.Material
 import org.bukkit.entity.Player
@@ -64,48 +68,42 @@ object Bazaars : IonServerComponent() {
 		addAll(CustomItems.identifiers)
 	}
 
+	/** Usually optional data for bazaar. Optional in the case of a global search. */
+	data class CityInfo(val territoryId: Oid<Territory>, val remote: Boolean)
+
     fun onClickBazaarNPC(player: Player, city: TradeCityData) {
 		val territoryId: Oid<Territory> = city.territoryId
 
 		openCityMenu(territoryId, player, false)
 	}
 
+	/**
+	 * Opens the menu for the city
+	 *
+	 * The city's items are broken down by category
+	 *
+	 * Buttons:
+	 * 	- searchButton: Searches all the city's items
+	 * 	- backButton: Returns to the global bazaar menu (all cities)
+	 * 	- Categories: The items, sorted by creative mode category
+	 **/
 	fun openCityMenu(territoryId: Oid<Territory>, player: Player, remote: Boolean): Unit = Tasks.async {
 		MenuHelper.run {
-			val backButton = guiButton(Material.IRON_DOOR) {
-				Tasks.sync {
-					BazaarCommand.onBrowse(player)
-				}
-			}.setName(text("Go Back to City Selection").decoration(TextDecoration.ITALIC, false))
+			val backButton = backButton(text = "Go Back to City Selection") { BazaarCommand.onBrowse(player) }
 
-			val searchButton = guiButton(Material.NAME_TAG) {
-				Tasks.sync {
-					player.input("Enter Item Name") { _, input ->
-						val searchBackButton = guiButton(Material.IRON_DOOR) {
-							Tasks.sync {
-								openCityMenu(territoryId, player, remote)
-							}
-						}.setName(text("Go Back to City").decoration(TextDecoration.ITALIC, false))
-
-						Tasks.async {
-							val items: List<GuiItem> = getGuiItems(search(territoryId, input), CityInfo(territoryId, remote))
-
-							Tasks.sync {
-								player.openPaginatedMenu("Search Query : $input", items, listOf(searchBackButton))
-							}
-						}
-
-						null
-					}
-				}
-			}.setName(text("Search").decoration(TextDecoration.ITALIC, false))
+			val searchButton = searchButton(
+				searchInputText = "Enter Item Name",
+				backButtonText = "Go Back to City",
+				searchFunction = { input: String -> getGuiItems(search(territoryId, input), CityInfo(territoryId, remote)) },
+				searchBackFunction = { openCityMenu(territoryId, it, remote) }
+			)
 
 			val titleButtons: List<GuiItem> = listOf(
 				backButton,
 				searchButton
 			)
 
-			val items: List<GuiItem> = getCityCategories(territoryId, remote)
+			val items: List<GuiItem> = getCategoryButtons(territoryId, remote)
 			val cityName = TradeCities.getIfCity(Regions[territoryId])?.displayName ?: return@async player.serverError("Territory is no longer a city")
 
 			Tasks.sync {
@@ -114,9 +112,8 @@ object Bazaars : IonServerComponent() {
 		}
 	}
 
-	data class CityInfo(val territoryId: Oid<Territory>, val remote: Boolean)
-
-	private fun getCityCategories(territoryId: Oid<Territory>, remote: Boolean): List<GuiItem> {
+	/** Returns the category buttons, to be used only for a single city's items. */
+	private fun getCategoryButtons(territoryId: Oid<Territory>, remote: Boolean): List<GuiItem> {
 		val cityItems = getCityItems(territoryId)
 
 		val containedCategories = ItemCategory.all().filter {
@@ -131,35 +128,31 @@ object Bazaars : IonServerComponent() {
 		}
 	}
 
+	/** Returns the items from all the items that are in the category */
+	private fun getCategoryItems(category: ItemCategory, allItems: FindIterable<BazaarItem>, cityInfo: CityInfo?): List<GuiItem> {
+		val items = allItems.filter { category.items.contains(it.itemString) }
+
+		return getGuiItems(items, cityInfo)
+	}
+
+	/**
+	 * Opens the menu for the items of a single category for a city
+	 *
+	 * Buttons:
+	 * 	- searchButton: Searches all the city's items
+	 * 	- backButton: Returns to the city categories menu
+	 * 	- Items: Types of items for sale at this city. Will open a menu for multiple listings if there are more than one.
+	 **/
 	private fun openCategoryMenu(category: ItemCategory, territoryId: Oid<Territory>, player: Player, remote: Boolean) = Tasks.async {
 		MenuHelper.run {
-			val backButton = guiButton(Material.IRON_DOOR) {
-				Tasks.sync {
-					openCityMenu(territoryId, player, remote)
-				}
-			}.setName(text("Go Back to Category Selection").decoration(TextDecoration.ITALIC, false))
+			val backButton = backButton(text = "Go Back to Category Selection") { openCityMenu(territoryId, player, remote) }
 
-			val searchButton = guiButton(Material.NAME_TAG) {
-				Tasks.sync {
-					player.input("Enter Item Name") { _, input ->
-						val searchBackButton = guiButton(Material.IRON_DOOR) {
-							Tasks.sync {
-								openCityMenu(territoryId, player, remote)
-							}
-						}.setName(text("Go Back to City").decoration(TextDecoration.ITALIC, false))
-
-						Tasks.async {
-							val items: List<GuiItem> = getGuiItems(search(territoryId, input), CityInfo(territoryId, remote))
-
-							Tasks.sync {
-								player.openPaginatedMenu("Search Query : $input", items, listOf(searchBackButton))
-							}
-						}
-
-						null
-					}
-				}
-			}.setName(text("Search").decoration(TextDecoration.ITALIC, false))
+			val searchButton = searchButton(
+				searchInputText = "Enter Item Name",
+				backButtonText = "Go Back to City",
+				searchFunction = { input: String -> getGuiItems(search(territoryId, input), CityInfo(territoryId, remote)) },
+				searchBackFunction = { openCityMenu(territoryId, it, remote) }
+			)
 
 			val titleButtons: List<GuiItem> = listOf(
 				backButton,
@@ -174,14 +167,6 @@ object Bazaars : IonServerComponent() {
 			}
 		}
 	}
-
-	private fun getCategoryItems(category: ItemCategory, allItems: FindIterable<BazaarItem>, cityInfo: CityInfo?): List<GuiItem> {
-		val items = allItems.filter { category.items.contains(it.itemString) }
-
-		return getGuiItems(items, cityInfo)
-	}
-
-	private fun getGuiItems(bazaarItems: FindIterable<BazaarItem>, cityInfo: CityInfo?): List<GuiItem> = getGuiItems(bazaarItems.toList(), cityInfo)
 
 	fun getGuiItems(bazaarItems: List<BazaarItem>, cityInfo: CityInfo?): List<GuiItem> =
 		bazaarItems
@@ -204,8 +189,8 @@ object Bazaars : IonServerComponent() {
 						val sellerName = SLPlayer.getName(listing.seller)!!
 
 						listOf(
-							Component.textOfChildren(text("Seller: ", AQUA), text(sellerName)).decoration(TextDecoration.ITALIC, false),
-							Component.textOfChildren(text("Stock: ", AQUA), text(listing.stock)).decoration(TextDecoration.ITALIC, false)
+							textOfChildren(text("Seller: ", AQUA), text(sellerName)).decoration(TextDecoration.ITALIC, false),
+							textOfChildren(text("Stock: ", AQUA), text(listing.stock)).decoration(TextDecoration.ITALIC, false)
 						)
 					}
 
@@ -221,9 +206,58 @@ object Bazaars : IonServerComponent() {
 	private fun getCityItems(territoryId: Oid<Territory>): FindIterable<BazaarItem> = BazaarItem
 		.find(and(BazaarItem::cityTerritory eq territoryId, BazaarItem::stock gt 0))
 
-	enum class SortingBy(val property: KProperty<*>, val displayType: Material) {
+	enum class SortingBy(val property: KProperty<*>, private val displayType: Material) {
 		PRICE(BazaarItem::price, Material.GOLD_INGOT),
 		STOCK(BazaarItem::stock, Material.NAME_TAG)
+
+		;
+
+		val lore = listOf("Left click to sort descending,", "right click to sort ascending.")
+
+		fun getButton(itemString: String, cityInfo: CityInfo?): GuiItem = MenuHelper.guiButton(displayType) {
+			playerClicker.closeInventory()
+
+			if (cityInfo == null) { openItemTypeMenu(playerClicker, itemString, this@SortingBy, isLeftClick) } else {
+				openItemTypeMenu(playerClicker, cityInfo.territoryId, itemString, this@SortingBy, isLeftClick, cityInfo.remote)
+			}
+		}
+		.setName("Sort By $this@SortingBy")
+		.setLore(lore)
+
+		companion object {
+			fun getButtons(itemString: String, cityInfo: CityInfo?) = values().map { it.getButton(itemString, cityInfo) }
+		}
+	}
+
+	private fun getListingsForItem(player: Player, items: FindIterable<BazaarItem>, sort: SortingBy, descend: Boolean, cityInfo: CityInfo?): List<GuiItem> {
+		val territory = Regions.find(player.location).filterIsInstance<RegionTerritory>().firstOrNull()
+
+		return items
+			.let { if (descend) it.descendingSort(sort.property) else it.ascendingSort(sort.property) }
+			.map { bazaarItem ->
+				val itemStack = fromItemString(bazaarItem.itemString)
+
+				val sellerName = SLPlayer.getName(bazaarItem.seller) ?: error("Failed to get name of ${bazaarItem.seller}")
+				val priceString = bazaarItem.price.toCreditsString()
+				val stock = bazaarItem.stock
+
+				val remote: Boolean = cityInfo?.remote ?: (bazaarItem.cityTerritory != territory?.id)
+				val cityData:  TradeCityData = cityInfo?.territoryId?.let { TradeCities.getIfCity(Regions[cityInfo.territoryId]) }
+					?: TradeCities.getIfCity(Regions[bazaarItem.cityTerritory])
+					?: error("$territory is no longer a city!")
+
+				return@map MenuHelper.guiButton(itemStack) {
+					openPurchaseMenu(playerClicker, bazaarItem, sellerName, 0, remote)
+				}
+				.setName(priceString)
+				.setLoreComponent(listOf(
+					textOfChildren(text("Seller: ", AQUA), text(sellerName, WHITE)).decoration(TextDecoration.ITALIC, false),
+					textOfChildren(text("Stock: ", AQUA), text(stock, WHITE)).decoration(TextDecoration.ITALIC, false),
+					textOfChildren(text("Price: ", AQUA), text(priceString, GOLD)).decoration(TextDecoration.ITALIC, false),
+					if (cityInfo == null) textOfChildren(text("City: ", AQUA), text(cityData.displayName, WHITE)).decoration(TextDecoration.ITALIC, false) else empty()
+				))
+			}
+			.toList()
 	}
 
 	/** Opens the menu containing listings for a specific item. Searches all territories */
@@ -234,46 +268,15 @@ object Bazaars : IonServerComponent() {
 		descend: Boolean
 	): Unit = Tasks.async {
 		MenuHelper.run {
-			val territory = Regions.find(player.location).filterIsInstance<RegionTerritory>().firstOrNull()
+			val titleItems: List<GuiItem> = SortingBy.getButtons(item, null) + backButton { BazaarCommand.onBrowse(it) }
 
-			val lore = listOf("Left click to sort descending,", "right click to sort ascending.")
-			val titleItems: List<GuiItem> = SortingBy.values().map { newSort ->
-				guiButton(newSort.displayType) {
-					playerClicker.closeInventory()
-					openItemTypeMenu(playerClicker, item, newSort, isLeftClick)
-				}.setName("Sort By $newSort").setLore(lore)
-			} + guiButton(Material.IRON_DOOR) { BazaarCommand.onBrowse(playerClicker) }.setName("Go Back")
-
-			val items: List<GuiItem> = BazaarItem
-				.find(and(BazaarItem::itemString eq item, BazaarItem::stock gt 0))
-				.let { if (descend) it.descendingSort(sort.property) else it.ascendingSort(sort.property) }
-				.map { bazaarItem ->
-					val itemStack = fromItemString(bazaarItem.itemString)
-
-					val sellerName = SLPlayer.getName(bazaarItem.seller) ?: error("Failed to get name of ${bazaarItem.seller}")
-					val priceString = bazaarItem.price.toCreditsString()
-					val stock = bazaarItem.stock
-
-					val remote = bazaarItem.cityTerritory != territory?.id
-
-					val city: TradeCityData = TradeCities.getIfCity(Regions[bazaarItem.cityTerritory]) ?: error("$territory is no longer a city!")
-
-					return@map guiButton(itemStack) {
-						openPurchaseMenu(playerClicker, bazaarItem, sellerName, 0, remote)
-					}
-					.setName(priceString)
-					.setLoreComponent(listOf(
-						Component.textOfChildren(text("Seller: ", AQUA), text(sellerName, WHITE)).decoration(TextDecoration.ITALIC, false),
-						Component.textOfChildren(text("Stock: ", AQUA), text(stock, WHITE)).decoration(TextDecoration.ITALIC, false),
-						Component.textOfChildren(text("City: ", AQUA), text(city.displayName, WHITE)).decoration(TextDecoration.ITALIC, false),
-					))
-				}
-				.toList()
+			val items = BazaarItem.find(and(BazaarItem::itemString eq item, BazaarItem::stock gt 0))
+			val guiItems: List<GuiItem> = getListingsForItem(player, items, sort, descend, null)
 
 			val name = fromItemString(item).displayNameString
 
 			Tasks.sync {
-				player.openPaginatedMenu(name, items, titleItems)
+				player.openPaginatedMenu(name, guiItems, titleItems)
 			}
 		}
 	}
@@ -301,34 +304,8 @@ object Bazaars : IonServerComponent() {
 		}
 
 		MenuHelper.run {
-			val lore = listOf("Left click to sort descending,", "right click to sort ascending.")
-			val titleItems: List<GuiItem> = SortingBy.values().map { newSort ->
-				guiButton(newSort.displayType) {
-					playerClicker.closeInventory()
-					openItemTypeMenu(playerClicker, terrId, item, newSort, isLeftClick, remote)
-				}.setName("Sort By $newSort").setLore(lore)
-			} + guiButton(Material.IRON_DOOR) { openCityMenu(terrId, playerClicker, remote) }.setName("Go Back")
-
-			val guiItems: List<GuiItem> = items
-				.let { if (descend) it.descendingSort(sort.property) else it.ascendingSort(sort.property) }
-				.map { bazaarItem ->
-					val itemStack = fromItemString(bazaarItem.itemString)
-					val sellerName = SLPlayer.getName(bazaarItem.seller)
-						?: error("Failed to get name of ${bazaarItem.seller}")
-					val priceString = bazaarItem.price.toCreditsString()
-					val stock = bazaarItem.stock
-
-					return@map guiButton(itemStack) {
-						openPurchaseMenu(playerClicker, bazaarItem, sellerName, 0, remote)
-					}
-					.setName(text(priceString).decoration(TextDecoration.ITALIC, false))
-					.setLoreComponent(listOf(
-						Component.textOfChildren(text("Seller: ", AQUA), text(sellerName)).decoration(TextDecoration.ITALIC, false),
-						Component.textOfChildren(text("Stock: ", AQUA), text(stock)).decoration(TextDecoration.ITALIC, false),
-					))
-				}
-				.toList()
-
+			val titleItems: List<GuiItem> = SortingBy.getButtons(item, CityInfo(terrId, remote)) + backButton { openCityMenu(terrId, it, remote) }
+			val guiItems = getListingsForItem(player, items, sort, descend, CityInfo(terrId, remote))
 			val name = fromItemString(item).displayNameString
 
 			Tasks.sync {
@@ -382,11 +359,7 @@ object Bazaars : IonServerComponent() {
 			addButton(32)
 			addButton(64)
 
-			pane.addItem(
-				guiButton(Material.IRON_DOOR) {
-					openItemTypeMenu(playerClicker, item.cityTerritory, item.itemString, SortingBy.STOCK, true, remote)
-				}.setName("Go Back")
-			)
+			pane.addItem(backButton { openItemTypeMenu(it, item.cityTerritory, item.itemString, SortingBy.STOCK, true, remote) })
 
 			val name = fromItemString(item.itemString).displayNameString
 
@@ -456,37 +429,29 @@ object Bazaars : IonServerComponent() {
 				VAULT_ECO.withdrawPlayer(player, cost)
 				val (fullStacks, remainder) = dropItems(itemStack, amount, player)
 
-				val buyMessage = text().color(NamedTextColor.GREEN)
-					.append(text("Bought "))
-					.append(text(fullStacks).color(WHITE))
-
-				if (itemStack.maxStackSize == 1) {
-					buyMessage
-						.append(text(" "))
-						.append(
-							itemStack.displayNameComponent.append(
-								if (fullStacks == 1) text("") else text("s")
-							)
+				val buyMessage = text().color(NamedTextColor.GREEN).append(textOfChildren(
+					text("Bought "),
+					text(fullStacks, WHITE),
+					if (itemStack.maxStackSize == 1) {
+						textOfChildren(text(" "), itemStack.displayNameComponent.append(if (fullStacks == 1) text("") else text("s")))
+					} else {
+						textOfChildren(
+							if (fullStacks == 1) text(" stack and ") else text(" stacks and "),
+							text(remainder, WHITE),
+							if (remainder == 1) text(" item") else text(" items"),
+							text(" of "),
+							itemStack.displayNameComponent
 						)
-				} else {
-					buyMessage
-						.append(if (fullStacks == 1) text(" stack and ") else text(" stacks and "))
-						.append(text(remainder).color(WHITE))
-						.append(if (remainder == 1) text(" item") else text(" items"))
-						.append(text(" of "))
-						.append(itemStack.displayNameComponent)
-				}
+					},
+					text(" for "),
+					cost.toCreditComponent()
+				))
 
-				buyMessage
-					.append(text(" for "))
-					.append(cost.toCreditComponent())
-
-				if (priceMult > 1) {
-					buyMessage
-						.append(text(" (Price multiplied by ").color(NamedTextColor.YELLOW))
-						.append(text(priceMult).color(WHITE))
-						.append(text(" due to browsing remotely)").color(NamedTextColor.YELLOW))
-				}
+				if (priceMult > 1) buyMessage.append(textOfChildren(
+					text(" (Price multiplied by ", YELLOW),
+					text(priceMult, WHITE),
+					text(" due to browsing remotely)", YELLOW))
+				)
 
 				player.sendMessage(
 					buyMessage
@@ -533,9 +498,11 @@ object Bazaars : IonServerComponent() {
 
 		repeat(fullStacks) { add(maxStackSize) }
 		val remainder = amount % maxStackSize
+
 		if (remainder > 0) {
 			add(remainder)
 		}
+
 		return Pair(fullStacks, remainder)
 	}
 }

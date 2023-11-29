@@ -7,7 +7,11 @@ import com.github.stefvanschie.inventoryframework.pane.OutlinePane
 import com.github.stefvanschie.inventoryframework.pane.PaginatedPane
 import com.github.stefvanschie.inventoryframework.pane.Pane
 import com.github.stefvanschie.inventoryframework.pane.StaticPane
+import net.horizonsend.ion.server.features.nations.gui.input
+import net.horizonsend.ion.server.features.nations.gui.playerClicker
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.Component.text
+import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.minimessage.MiniMessage
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacyAmpersand
 import net.md_5.bungee.api.ChatColor
@@ -60,6 +64,40 @@ object MenuHelper {
 
 		return this
 	}
+
+	fun backButton(
+		material: Material = Material.IRON_DOOR,
+		text: String = "Go back",
+		back: (Player) -> Unit
+	) = guiButton(material) {
+		Tasks.sync {
+			back.invoke(playerClicker)
+		}
+	}.setName(text(text).decoration(TextDecoration.ITALIC, false))
+
+	fun searchButton(
+		material: Material = Material.NAME_TAG,
+		searchInputText: String = "Go Back",
+		searchFunction: (String) -> List<GuiItem>,
+		backButtonText: String = "Enter Item Name",
+		searchBackFunction: (Player) -> Unit,
+	)  = guiButton(material) {
+		val searchBackButton = backButton(text = backButtonText, back = searchBackFunction)
+
+		Tasks.sync {
+			playerClicker.input(searchInputText) { _, input ->
+				Tasks.async {
+					val items: List<GuiItem> = searchFunction.invoke(input)
+
+					Tasks.sync {
+						playerClicker.openPaginatedMenu("Search Query : $input", items, listOf(searchBackButton))
+					}
+				}
+
+				null
+			}
+		}
+	}.setName(text("Search").decoration(TextDecoration.ITALIC, false))
 
 	fun GuiItem.setLore(text: String): GuiItem = this@setLore.setLore(text.split("\n"))
 
