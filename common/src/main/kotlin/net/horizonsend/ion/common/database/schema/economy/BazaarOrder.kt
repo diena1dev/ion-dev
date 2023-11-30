@@ -9,7 +9,7 @@ import org.litote.kmongo.ensureIndex
 import org.litote.kmongo.ensureUniqueIndex
 import java.util.Date
 
-class ActiveBazaarRequest(
+class BazaarOrder(
 	override val _id: Oid<BazaarItem>,
 	val cityTerritory: Oid<Territory>,
 	val requestingPlayer: SLPlayerId,
@@ -21,12 +21,12 @@ class ActiveBazaarRequest(
 	var balance: Double
 ) : DbObject {
 	companion object : OidDbObjectCompanion<BazaarItem>(BazaarItem::class, setup = {
-		ensureIndex(ActiveBazaarRequest::cityTerritory)
-		ensureIndex(ActiveBazaarRequest::requestingPlayer)
-		ensureIndex(ActiveBazaarRequest::itemString)
+		ensureIndex(BazaarOrder::cityTerritory)
+		ensureIndex(BazaarOrder::requestingPlayer)
+		ensureIndex(BazaarOrder::itemString)
 
 		// don't allow one person to sell the same type of item for different prices in one city
-		ensureUniqueIndex(ActiveBazaarRequest::cityTerritory, ActiveBazaarRequest::requestingPlayer, ActiveBazaarRequest::itemString)
+		ensureUniqueIndex(BazaarOrder::cityTerritory, BazaarOrder::requestingPlayer, BazaarOrder::itemString)
 	}) {
 
 	}
