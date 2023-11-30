@@ -25,6 +25,7 @@ import org.litote.kmongo.ensureIndex
 import org.litote.kmongo.eq
 import org.litote.kmongo.findOne
 import org.litote.kmongo.findOneById
+import org.litote.kmongo.gte
 import org.litote.kmongo.id.StringId
 import org.litote.kmongo.inc
 import org.litote.kmongo.ne
@@ -181,5 +182,7 @@ data class SLPlayer(
 				)
 			)
 		}
+
+		fun hasLoggedInSince(id: SLPlayerId, from: Date) = SLPlayer.matches(id, SLPlayer::lastSeen gte from)
 	}
 }

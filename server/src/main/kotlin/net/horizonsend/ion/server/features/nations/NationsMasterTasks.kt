@@ -138,9 +138,7 @@ object NationsMasterTasks : IonServerComponent() {
 		for (settlementId: Oid<Settlement> in Settlement.allIds()) {
 			val settlement: SettlementCache.SettlementData = SettlementCache[settlementId]
 
-			val activeCount = SLPlayer.count(
-				and(SLPlayer::lastSeen gte ACTIVE_AFTER_TIME, SLPlayer::settlement eq settlementId)
-			).toInt()
+			val activeCount = SLPlayer.count(and(SLPlayer::lastSeen gte ACTIVE_AFTER_TIME, SLPlayer::settlement eq settlementId)).toInt()
 			val activityCredits = activeCount * NATIONS_BALANCE.settlement.hourlyActivityCredits
 
 			if (activityCredits > 0) {
