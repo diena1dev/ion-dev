@@ -28,6 +28,7 @@ import net.horizonsend.ion.server.features.nations.gui.lore
 import net.horizonsend.ion.server.features.nations.gui.playerClicker
 import net.horizonsend.ion.server.features.nations.region.Regions
 import net.horizonsend.ion.server.features.nations.region.types.RegionTerritory
+import net.horizonsend.ion.server.features.nations.utils.INACTIVE_BEFORE_TIME
 import net.horizonsend.ion.server.miscellaneous.utils.MenuHelper
 import net.horizonsend.ion.server.miscellaneous.utils.MenuHelper.setLore
 import net.horizonsend.ion.server.miscellaneous.utils.MenuHelper.setLoreComponent
@@ -129,7 +130,7 @@ object Bazaars : IonServerComponent() {
 	}
 
 	/** Returns the items from all the items that are in the category */
-	private fun getCategoryItems(category: ItemCategory, allItems: FindIterable<BazaarItem>, cityInfo: CityInfo?): List<GuiItem> {
+	private fun getCategoryItems(category: ItemCategory, allItems: List<BazaarItem>, cityInfo: CityInfo?): List<GuiItem> {
 		val items = allItems.filter { category.items.contains(it.itemString) }
 
 		return getGuiItems(items, cityInfo)
@@ -203,8 +204,10 @@ object Bazaars : IonServerComponent() {
 				}
 			}
 
-	private fun getCityItems(territoryId: Oid<Territory>): FindIterable<BazaarItem> = BazaarItem
-		.find(and(BazaarItem::cityTerritory eq territoryId, BazaarItem::stock gt 0))
+	private fun getCityItems(territoryId: Oid<Territory>): List<BazaarItem> {
+		return BazaarItem.find(and(BazaarItem::cityTerritory eq territoryId, BazaarItem::stock gt 0))
+			.filter { SLPlayer.hasLoggedInSince(it.seller, INACTIVE_BEFORE_TIME) }
+	}
 
 	enum class SortingBy(val property: KProperty<*>, private val displayType: Material) {
 		PRICE(BazaarItem::price, Material.GOLD_INGOT),
