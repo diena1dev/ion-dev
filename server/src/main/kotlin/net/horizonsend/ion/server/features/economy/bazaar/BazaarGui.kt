@@ -1,6 +1,8 @@
 package net.horizonsend.ion.server.features.economy.bazaar
 
+import net.horizonsend.ion.common.database.Oid
 import net.horizonsend.ion.common.database.schema.economy.BazaarItem
+import net.horizonsend.ion.common.database.schema.nations.Territory
 import net.horizonsend.ion.common.extensions.serverError
 import net.horizonsend.ion.common.utils.text.colors.HEColorScheme
 import net.horizonsend.ion.common.utils.text.template
@@ -40,23 +42,16 @@ object BazaarGui {
 		*params
 	)
 
-	fun openMainMenu(player: Player) {
-		val normalWindow = Window.single()
-			.setViewer(player)
-			.setGui(buildMainMenu(player))
-			.setTitle("InvUI")
-			.build()
-			.open()
-	}
-
-	fun getLocationData(player: Player) {
-
-	}
+	fun openMainMenu(player: Player) = Window.single()
+		.setViewer(player)
+		.setGui(buildMainMenu(player))
+		.setTitle("InvUI")
+		.build()
+		.open()
 
 	private fun getCitiesPurchaseMenu(player: Player): Gui {
 		val cities: List<TradeCityData> = CityNPCs.BAZAAR_CITY_TERRITORIES
 			.map { Regions.get<RegionTerritory>(it) }
-//			.filter { Sector.getSector(it.world) == sector }
 			.mapNotNull(TradeCities::getIfCity)
 
 		val items = cities.map { getCityItem(player, it) }.toTypedArray()
@@ -91,7 +86,7 @@ object BazaarGui {
 				item = item.itemStack(1),
 				name = text(city.displayName),
 				lore = lore,
-			) { player, event, type ->
+			) { item, player, event, type ->
 				player.serverError("TODO")
 			}.itemProvider
 		}
@@ -103,7 +98,23 @@ object BazaarGui {
 		return gui2
 	}
 
-	private fun getAllPurchaseMenu(player: Player): Gui {
+	private fun getCategoryButtons(territoryId: Oid<Territory>, remote: Boolean): List<Item> { // TODO
+//		val cityItems = Bazaars.getCityItems(territoryId)
+//
+//		val containedCategories = ItemCategory.all().filter {
+//				category -> cityItems.any { category.items.contains(it.itemString) }
+//		}
+//
+//		return containedCategories.map { category ->
+//			guiButton(category.displayItem) {
+//				Bazaars.openCategoryMenu(category, territoryId, playerClicker, remote)
+//			}
+//				.setName(category.displayName)
+//		}
+		return listOf()
+	}
+
+	private fun getSearchPurchaseMenu(player: Player): Gui {
 		val gui2 = Gui.empty(9, 3)
 		gui2.fill(SimpleItem(ItemBuilder(Material.RAW_COPPER)), true)
 		return gui2
@@ -142,7 +153,7 @@ object BazaarGui {
 		}
 	}
 
-	fun buildMainMenu(player: Player): Gui = TabGui.normal()
+	private fun buildMainMenu(player: Player): Gui = TabGui.normal()
 		.setStructure(
 			"# 0 1 2 # 3 4 5 #",
 			"x x x x x x x x x",
@@ -160,14 +171,21 @@ object BazaarGui {
 		.setTabs(listOf(
 			getCitiesPurchaseMenu(player),
 			getCategoriesPurchaseMenu(player),
-			getAllPurchaseMenu(player),
+			getSearchPurchaseMenu(player),
 			getCitiesRequestMenu(player),
 			getCategoriesRequestMenu(player),
 			getAllRequestMenu(player)
 		))
 		.build()
 
+	fun getMainMenuButton() : Item = UIUtils.createUIItem(Material.RED_WOOL, text("Go Back to Main Menu", RED)) { item, player, _, _ ->
+		closeAndGoBackToMain(player, item.windows)
+	}
 
+	private fun closeAndGoBackToMain(player: Player, window: MutableSet<Window>) {
+		window.forEach { it.close() }
+		openMainMenu(player)
+	}
 }
 
 
