@@ -1,6 +1,6 @@
 package net.horizonsend.ion.server.features.economy.city
 
-enum class TradeCityType {
-	SETTLEMENT,
-	NPC
+enum class TradeCityType(val displayName: String) {
+	SETTLEMENT("Player"),
+	NPC("NPC")
 }
