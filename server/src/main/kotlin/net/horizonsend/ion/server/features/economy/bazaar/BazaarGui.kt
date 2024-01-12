@@ -15,14 +15,17 @@ import net.horizonsend.ion.server.features.space.Space
 import net.horizonsend.ion.server.miscellaneous.registrations.legacy.CustomItem
 import net.horizonsend.ion.server.miscellaneous.registrations.legacy.CustomItems
 import net.horizonsend.ion.server.miscellaneous.utils.UIUtils
+import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.Component.empty
 import net.kyori.adventure.text.Component.text
 import net.kyori.adventure.text.format.NamedTextColor.RED
 import net.kyori.adventure.text.format.TextDecoration
 import org.bukkit.Material
 import org.bukkit.entity.Player
+import org.bukkit.inventory.ItemStack
 import org.litote.kmongo.eq
 import xyz.xenondevs.invui.gui.Gui
+import xyz.xenondevs.invui.gui.ScrollGui
 import xyz.xenondevs.invui.gui.TabGui
 import xyz.xenondevs.invui.gui.structure.Markers
 import xyz.xenondevs.invui.item.Item
@@ -32,7 +35,9 @@ import xyz.xenondevs.invui.item.builder.setDisplayName
 import xyz.xenondevs.invui.item.impl.AsyncItem
 import xyz.xenondevs.invui.item.impl.SimpleItem
 import xyz.xenondevs.invui.item.impl.controlitem.TabItem
+import xyz.xenondevs.invui.window.AnvilWindow
 import xyz.xenondevs.invui.window.Window
+import xyz.xenondevs.invui.window.type.context.setTitle
 
 object BazaarGui {
 	private fun bazaarItemLoreMessageFormat(content: String, vararg params: Any?) = template(
@@ -180,6 +185,35 @@ object BazaarGui {
 
 	fun getMainMenuButton() : Item = UIUtils.createUIItem(Material.RED_WOOL, text("Go Back to Main Menu", RED)) { item, player, _, _ ->
 		closeAndGoBackToMain(player, item.windows)
+	}
+
+	fun openSearchWindow(
+		player: Player,
+		title: Component,
+		search: (String) -> Unit
+	) {
+		val upper = Gui.empty(3, 1)
+
+		val scrollGui = ScrollGui.items()
+			.setStructure(
+				"x x x x x x x x u",
+				"x x x x x x x x #",
+				"x x x x x x x x #",
+				"x x x x x x x x d")
+			.addIngredient('x', Markers.CONTENT_LIST_SLOT_VERTICAL)
+			.addIngredient('#', UIUtils.getBorderItem())
+			.addIngredient('u', UIUtils.getScrollUpItem())
+			.addIngredient('d', UIUtils.getScrollDownItem())
+			.setContent(Material.entries.filter { it.isItem }.map { SimpleItem(ItemStack(it)) })
+			.build()
+
+		val window = AnvilWindow.split()
+			.setTitle(title)
+			.addRenameHandler(search)
+			.setUpperGui(upper)
+			.setLowerGui(scrollGui)
+			.build(player)
+			.open()
 	}
 
 	private fun closeAndGoBackToMain(player: Player, window: MutableSet<Window>) {

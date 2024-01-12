@@ -43,6 +43,7 @@ import net.kyori.adventure.text.Component.text
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.NamedTextColor.RED
 import net.kyori.adventure.text.format.TextDecoration
+import net.kyori.adventure.text.minimessage.MiniMessage.miniMessage
 import org.bukkit.DyeColor
 import org.bukkit.Material
 import org.bukkit.command.CommandSender
@@ -470,4 +471,7 @@ object BazaarCommand : SLCommand() {
 
 	@Subcommand("test")
 	fun onTest(sender: Player) = BazaarGui.openMainMenu(sender)
+
+	@Subcommand("testtwo")
+	fun onTestTwo(sender: Player) = BazaarGui.openSearchWindow(sender, miniMessage().deserialize("<rainbow>Search Menu")) { println(it) }
 }
