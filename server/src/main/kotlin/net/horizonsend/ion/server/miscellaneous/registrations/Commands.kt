@@ -16,6 +16,7 @@ import net.horizonsend.ion.server.command.economy.CityNpcCommand
 import net.horizonsend.ion.server.command.economy.CollectedItemCommand
 import net.horizonsend.ion.server.command.economy.CollectorCommand
 import net.horizonsend.ion.server.command.economy.EcoStationCommand
+import net.horizonsend.ion.server.command.economy.RentCommand
 import net.horizonsend.ion.server.command.economy.TradeDebugCommand
 import net.horizonsend.ion.server.command.misc.AIOpponentCommand
 import net.horizonsend.ion.server.command.misc.BlockCommand
@@ -182,5 +183,6 @@ val commands: List<SLCommand> = listOf(
 	CheckCryoCommand,
 	PersonalTransporterCommand,
 	ForbiddenBlocksCommand,
-	EnableProtectionMessagesCommand
+	EnableProtectionMessagesCommand,
+	RentCommand,
 )
