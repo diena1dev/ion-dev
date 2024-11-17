@@ -4,6 +4,7 @@ import net.horizonsend.ion.common.utils.text.DEFAULT_BACKGROUND_CHARACTER
 import net.horizonsend.ion.common.utils.text.DEFAULT_GUI_WIDTH
 import net.horizonsend.ion.common.utils.text.GUI_HEADER_MARGIN
 import net.horizonsend.ion.common.utils.text.GUI_MARGIN
+import net.horizonsend.ion.common.utils.text.SHIFT_DOWN_MIN
 import net.horizonsend.ion.common.utils.text.SLOT_OVERLAY_WIDTH
 import net.horizonsend.ion.common.utils.text.SPECIAL_FONT_KEY
 import net.horizonsend.ion.common.utils.text.leftShift
@@ -166,9 +167,9 @@ class GuiText(
             val rightGuiComponent = guiComponents.find { it.line == line && it.alignment == TextAlignment.RIGHT }
 
             val verticalShift = listOf(
-                leftGuiComponent?.verticalShift ?: 0,
-                centerGuiComponent?.verticalShift ?: 0,
-                rightGuiComponent?.verticalShift ?: 0
+                leftGuiComponent?.verticalShift ?: SHIFT_DOWN_MIN,
+                centerGuiComponent?.verticalShift ?: SHIFT_DOWN_MIN,
+                rightGuiComponent?.verticalShift ?: SHIFT_DOWN_MIN
             ).max()
 
             // get the TextComponents of the GuiComponents with the proper shift, or an empty component if not present
