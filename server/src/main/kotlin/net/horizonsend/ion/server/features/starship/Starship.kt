@@ -373,6 +373,9 @@ class Starship (
 	val initialDirectControlCooldown get() = 300L + ((initialBlockCount / 700).coerceAtLeast(1)) * 30
 	var directControlCooldown = initialDirectControlCooldown
 	var directControlSpeedModifier = 1.0
+		set(value) {
+			field = value.coerceIn(0.5, 1.0)
+		}
 	var lastDirectControlSpeedSlowed = 0L
 	var isDirectControlEnabled: Boolean = false
 		private set
