@@ -103,7 +103,7 @@ object StarshipControl : IonServerComponent() {
 		var dz = 0
 
 		val direction = starship.getTargetForward()
-		val targetSpeed = (calculateSpeed(selectedSpeed) * starship.directControlSpeedModifier).toInt()
+		val targetSpeed = (calculateSpeed(selectedSpeed) * starship.directControlSpeedModifierFromIonTurrets * starship.directControlSpeedModifierFromHeavyLasers).toInt()
 
 		dx += (targetSpeed * direction.modX)
 		dz += (targetSpeed * direction.modZ)

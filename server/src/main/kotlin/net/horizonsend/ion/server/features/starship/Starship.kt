@@ -372,11 +372,17 @@ class Starship (
 	//region Direct Control
 	val initialDirectControlCooldown get() = 300L + ((initialBlockCount / 700).coerceAtLeast(1)) * 30
 	var directControlCooldown = initialDirectControlCooldown
-	var directControlSpeedModifier = 1.0
+	var directControlSpeedModifierFromIonTurrets = 1.0
 		set(value) {
-			field = value.coerceIn(0.5, 1.0)
+			field = value.coerceIn(0.85, 1.0)
 		}
-	var lastDirectControlSpeedSlowed = 0L
+	var directControlSpeedModifierFromHeavyLasers = 1.0
+		set(value) {
+			field = value.coerceIn(0.0, 1.0)
+		}
+	var directControlSlowExpiryFromIonTurrets = 0L
+	var lastTimeThisShipWasHitByAnIonTurretAndTheSlowEffectHappened = 0L
+	var directControlSlowExpiryFromHeavyLasers = 0L
 	var isDirectControlEnabled: Boolean = false
 		private set
 	val directControlPreviousVectors = LinkedBlockingQueue<Vector>(4)
