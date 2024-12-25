@@ -153,11 +153,13 @@ object CombatTimer : IonServerComponent() {
 	fun refreshNpcTimer(player: Player, reason: String) {
 		if (!enabled) return
 
+		if (player.hasProtection() && !player.world.hasFlag(WorldFlag.NOT_SECURE)) {
+			player.sendMessage(newPlayerAlertComponent())
+			return
+		}
+
 		if (!isNpcCombatTagged(player) && PlayerCache[player].enableCombatTimerAlerts) {
 			player.sendMessage(npcTimerAlertComponent(reason))
-			if (player.hasProtection() && !player.world.hasFlag(WorldFlag.NOT_SECURE)) {
-				player.sendMessage(newPlayerAlertComponent())
-			}
 		}
 
 		npcTimer[player.uniqueId] = System.currentTimeMillis() + NPC_TIMER_MINS.toMillis()
@@ -169,11 +171,13 @@ object CombatTimer : IonServerComponent() {
 	fun refreshPvpTimer(player: Player, reason: String) {
 		if (!enabled) return
 
+		if (player.hasProtection() && !player.world.hasFlag(WorldFlag.NOT_SECURE)) {
+			player.sendMessage(newPlayerAlertComponent())
+			return
+		}
+
 		if (!isPvpCombatTagged(player) && PlayerCache[player].enableCombatTimerAlerts) {
 			player.sendMessage(pvpTimerAlertComponent(reason))
-			if (player.hasProtection() && !player.world.hasFlag(WorldFlag.NOT_SECURE)) {
-				player.sendMessage(newPlayerAlertComponent())
-			}
 		}
 
 		pvpTimer[player.uniqueId] = System.currentTimeMillis() + PVP_TIMER_MINS.toMillis()
@@ -200,7 +204,8 @@ object CombatTimer : IonServerComponent() {
 		val defenderData = PlayerCache[defender]
 		val defenderNation = defenderData.nationOid
 
-		if (attackerNation == defenderNation) return
+		// Prevent same nation from triggering combat tag (but also let the case where two no-nation players attack each other fall through)
+		if (attackerNation == defenderNation && attackerNation != null && defenderNation != null) return
 
 		if (neutralTriggersCombat) {
 			if (attackerNation != null && defenderNation != null &&
