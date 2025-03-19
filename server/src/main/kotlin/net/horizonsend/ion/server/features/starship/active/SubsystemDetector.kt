@@ -116,9 +116,9 @@ object SubsystemDetector {
 		for (block in potentialLandingGearBlocks) {
 			detectLandingGear(starship, block)
 		}
-		for (block in potentialTurretBases) {
-			detectCustomTurretBase(starship, block)
-		}
+//		for (block in potentialTurretBases) {
+//			detectCustomTurretBase(starship, block)
+//		}
 		for (block in potentialSignBlocks) {
 			try {
 				detectSign(starship, block)

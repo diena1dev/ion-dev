@@ -7,7 +7,6 @@ import net.horizonsend.ion.server.configuration.StarshipBalancing
 import net.horizonsend.ion.server.features.custom.items.CustomItemRegistry
 import net.horizonsend.ion.server.features.progression.Levels
 import net.horizonsend.ion.server.features.sidebar.SidebarIcon
-import net.horizonsend.ion.server.features.starship.StarshipType.entries
 import net.horizonsend.ion.server.features.starship.destruction.SinkProvider
 import net.horizonsend.ion.server.features.world.IonWorld
 import net.horizonsend.ion.server.features.world.WorldFlag
@@ -99,7 +98,7 @@ enum class StarshipType(
 		containerPercent = 0.025,
 		crateLimitMultiplier = 0.5,
 		menuItemRaw = { ItemStack(Material.IRON_NUGGET) },
-		menuSubclasses = { listOf(AI_STARFIGHTER) },
+		menuSubclasses = { listOf(AI_STARFIGHTER, INTERCEPTOR) },
 		typeCategory = TypeCategory.WAR_SHIP,
 		color = "#ff8000",
 		overridePermission = "ion.ships.override.1",
@@ -122,6 +121,23 @@ enum class StarshipType(
 		concretePercent = 0.0,
 		overridePermission = "ion.ships.ai.starfighter",
 		balancingSupplier = ConfigurationFiles.starshipBalancing()::aiStarfighter
+	),
+	INTERCEPTOR(
+		displayName = "Interceptor",
+		icon = SidebarIcon.INTERCEPTOR_ICON.text,
+		minSize = 150,
+		maxSize = 350,
+		minLevel = 1,
+		containerPercent = 0.025,
+		crateLimitMultiplier = 0.5,
+		concretePercent = 0.15,
+		menuItemRaw = { ItemStack(Material.GHAST_TEAR) },
+		displayInMainMenu = false,
+		typeCategory = TypeCategory.WAR_SHIP,
+		color = "#ff8000",
+		overridePermission = "ion.ships.override.1",
+		dynmapIcon = "interceptor",
+		balancingSupplier = ConfigurationFiles.starshipBalancing()::interceptor
 	),
 	GUNSHIP(
 		displayName = "Gunship",
@@ -303,7 +319,6 @@ enum class StarshipType(
 		maxMiningLasers = 1,
 		miningLaserTier = 1,
 		sinkProvider = SinkProvider.SinkProviders.CRUISER,
-		requiredWorldFlags = setOf(WorldFlag.SPACE_WORLD),
 		balancingSupplier = ConfigurationFiles.starshipBalancing()::cruiser,
 	),
 	AI_CRUISER(
@@ -343,6 +358,7 @@ enum class StarshipType(
 		miningLaserTier = 1,
 		overridePermission = "ion.ships.override.80",
 		sinkProvider = SinkProvider.SinkProviders.BATTLECRUISER,
+		requiredWorldFlags = setOf(WorldFlag.SPACE_WORLD),
 		balancingSupplier = ConfigurationFiles.starshipBalancing()::battlecruiser
 	),
 	AI_BATTLECRUISER(
@@ -449,6 +465,7 @@ enum class StarshipType(
 		minSize = 100,
 		maxSize = 1000,
 		minLevel = 1,
+		concretePercent = 0.25,
 		containerPercent = 0.045,
 		crateLimitMultiplier = 1.0,
 		menuItemRaw = { ItemStack(Material.PRISMARINE_SHARD) },
@@ -488,6 +505,7 @@ enum class StarshipType(
 		minSize = 1000,
 		maxSize = 2000,
 		minLevel = 10,
+		concretePercent = 0.25,
 		containerPercent = 0.045,
 		crateLimitMultiplier = 1.0,
 		menuItemRaw = { ItemStack(Material.PRISMARINE_CRYSTALS) },
@@ -527,6 +545,7 @@ enum class StarshipType(
 		minSize = 2000,
 		maxSize = 4000,
 		minLevel = 20,
+		concretePercent = 0.25,
 		containerPercent = 0.045,
 		crateLimitMultiplier = 1.0,
 		menuItemRaw = { ItemStack(Material.PRISMARINE_SLAB) },
@@ -566,6 +585,7 @@ enum class StarshipType(
 		minSize = 4000,
 		maxSize = 8000,
 		minLevel = 40,
+		concretePercent = 0.25,
 		containerPercent = 0.045,
 		crateLimitMultiplier = 1.0,
 		menuItemRaw = { ItemStack(Material.PRISMARINE_STAIRS) },
@@ -584,6 +604,7 @@ enum class StarshipType(
 		minSize = 8000,
 		maxSize = 12000,
 		minLevel = 60,
+		concretePercent = 0.25,
 		containerPercent = 0.045,
 		crateLimitMultiplier = 1.0,
 		menuItemRaw = { ItemStack(Material.PRISMARINE) },
@@ -623,6 +644,7 @@ enum class StarshipType(
 		minSize = 16000,
 		maxSize = 20000,
 		minLevel = 80,
+		concretePercent = 0.25,
 		containerPercent = 0.075,
 		crateLimitMultiplier = 0.0,
 		menuItemRaw = { ItemStack(Material.SEA_LANTERN) },

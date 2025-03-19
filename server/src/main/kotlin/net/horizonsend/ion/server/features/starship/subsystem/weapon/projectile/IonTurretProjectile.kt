@@ -12,6 +12,7 @@ import net.kyori.adventure.text.Component
 import org.bukkit.Color
 import org.bukkit.Location
 import org.bukkit.Particle
+import org.bukkit.damage.DamageType
 import org.bukkit.util.Vector
 import java.time.Duration
 
@@ -28,9 +29,9 @@ class IonTurretProjectile(
 	override val starshipShieldDamageMultiplier: Double,
 	override val areaShieldDamageMultiplier: Double,
 	override val soundName: String,
-	override val balancing: StarshipWeapons.ProjectileBalancing?,
+	override val balancing: StarshipWeapons.ProjectileBalancing,
 	shooter: Damager
-): LaserProjectile(ship, name, loc, dir, shooter) {
+): LaserProjectile(ship, name, loc, dir, shooter, DamageType.GENERIC) {
 
 	override val volume: Int = (range / 16).toInt()
 
@@ -65,18 +66,34 @@ class IonTurretProjectile(
 			thruster.lastIonTurretLimited = System.currentTimeMillis()
 		}
 
-		starship.userErrorAction("Direct Control speed slowed by 9%!")
-		starship.directControlSpeedModifier *= 0.91
-		starship.lastDirectControlSpeedSlowed = System.currentTimeMillis() + Duration.ofSeconds(7).toMillis()
+		starship.userErrorAction("Direct Control speed slowed by ${(SLOW_FACTOR * 100).toInt()}%!")
+		// starship was not slowed by ion turrets recently
+		if (starship.directControlSlowExpiryFromIonTurrets < System.currentTimeMillis()) {
+			// Only start the timer based on the first hit
+			starship.directControlSlowExpiryFromIonTurrets = System.currentTimeMillis() + Duration.ofSeconds(SLOW_DURATION_SECONDS).toMillis()
+		}
+		// Only apply slow if this ship has not been hit within the last 1 second
+		if (starship.lastTimeThisShipWasHitByAnIonTurretAndTheSlowEffectHappened + Duration.ofSeconds(1L).toMillis() <= System.currentTimeMillis()) {
+			// Reduce starship speed by the slow factor
+			starship.directControlSpeedModifierFromIonTurrets *= (1 - SLOW_FACTOR)
+			starship.lastTimeThisShipWasHitByAnIonTurretAndTheSlowEffectHappened = System.currentTimeMillis()
+		}
 
-		Tasks.syncDelay(Duration.ofSeconds(5).toSeconds() * 20L) {
+		Tasks.syncDelay(Duration.ofSeconds(SLOW_DURATION_SECONDS).toSeconds() * 20L) {
 			// reset for individual shots
-			starship.directControlSpeedModifier /= 0.91
-			if (ActiveStarships.isActive(starship) && starship.lastDirectControlSpeedSlowed - 100 < System.currentTimeMillis()) {
+			// starship.directControlSpeedModifier /= (1 - SLOW_FACTOR)
+			if (ActiveStarships.isActive(starship) && starship.directControlSlowExpiryFromIonTurrets - 100 <= System.currentTimeMillis()) {
 				// hard reset to normal speed (I feel that weird double-rounding bugs might be possible)
-				starship.directControlSpeedModifier = 1.0
+				starship.directControlSpeedModifierFromIonTurrets = 1.0
+				starship.directControlSlowExpiryFromIonTurrets = 0L
+				starship.lastTimeThisShipWasHitByAnIonTurretAndTheSlowEffectHappened = 0L
 				starship.informationAction("Direct Control speed restored")
 			}
 		}
+	}
+
+	companion object {
+		private const val SLOW_FACTOR = 0.1
+		private const val SLOW_DURATION_SECONDS = 7L
 	}
 }

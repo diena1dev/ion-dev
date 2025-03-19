@@ -8,6 +8,8 @@ import net.horizonsend.ion.server.features.starship.subsystem.weapon.TurretWeapo
 import net.horizonsend.ion.server.features.starship.subsystem.weapon.primary.IonTurretWeaponSubsystem
 import net.horizonsend.ion.server.features.starship.subsystem.weapon.projectile.IonTurretProjectile
 import net.horizonsend.ion.server.miscellaneous.utils.coordinates.Vec3i
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.Component.text
 import org.bukkit.Material.END_ROD
 import org.bukkit.Material.GRINDSTONE
 import org.bukkit.Material.IRON_TRAPDOOR
@@ -22,6 +24,9 @@ sealed class IonTurretMultiblock : TurretMultiblock() {
 
 	protected abstract fun getSign(): Int
 
+	override val displayName: Component get() = text("Ion Turret (${if (getSign() == 1) "Top" else "Bottom"})")
+	override val description: Component get() = text("Rotating weapon system that slows down starships that are cruising and in Direct Control mode. Manual fire only. Consumes ammo.")
+
 	override fun getBalancing(starship: ActiveStarship): StarshipWeapons.StarshipWeapon = starship.balancing.weapons.ionTurret
 
 	override fun buildFirePointOffsets(): List<Vec3i> =
@@ -31,7 +36,7 @@ sealed class IonTurretMultiblock : TurretMultiblock() {
 		z(-3) {
 			y(getSign() * 3) {
 				x(-1).anyStairs()
-				x(+0).terracottaOrDoubleslab()
+				x(+0).terracottaOrDoubleSlab()
 				x(+1).anyStairs()
 			}
 		}
@@ -45,7 +50,7 @@ sealed class IonTurretMultiblock : TurretMultiblock() {
 			}
 			y(getSign() * 4) {
 				x(-1).anyStairs()
-				x(+0).terracottaOrDoubleslab()
+				x(+0).terracottaOrDoubleSlab()
 				x(+1).anyStairs()
 			}
 		}
@@ -64,9 +69,9 @@ sealed class IonTurretMultiblock : TurretMultiblock() {
 			}
 			y(getSign() * 4) {
 				x(-2).anySlab()
-				x(-1).terracottaOrDoubleslab()
-				x(+0).terracottaOrDoubleslab()
-				x(+1).terracottaOrDoubleslab()
+				x(-1).terracottaOrDoubleSlab()
+				x(+0).terracottaOrDoubleSlab()
+				x(+1).terracottaOrDoubleSlab()
 				x(+2).anySlab()
 			}
 		}
@@ -76,13 +81,13 @@ sealed class IonTurretMultiblock : TurretMultiblock() {
 				x(+1).sponge()
 			}
 			y(getSign() * 3) {
-				x(-3).terracottaOrDoubleslab()
+				x(-3).terracottaOrDoubleSlab()
 				x(-2).anyConcrete()
-				x(-1).terracottaOrDoubleslab()
+				x(-1).terracottaOrDoubleSlab()
 				x(+0).anyCopperVariant()
-				x(+1).terracottaOrDoubleslab()
+				x(+1).terracottaOrDoubleSlab()
 				x(+2).anyConcrete()
-				x(+3).terracottaOrDoubleslab()
+				x(+3).terracottaOrDoubleSlab()
 			}
 			y(getSign() * 4) {
 				x(-2).anySlab()
@@ -99,9 +104,9 @@ sealed class IonTurretMultiblock : TurretMultiblock() {
 			y(getSign() * 3) {
 				x(-3).anyStairs()
 				x(-2).anyConcrete()
-				x(-1).terracottaOrDoubleslab()
+				x(-1).terracottaOrDoubleSlab()
 				x(+0).anyCopperVariant()
-				x(+1).terracottaOrDoubleslab()
+				x(+1).terracottaOrDoubleSlab()
 				x(+2).anyConcrete()
 				x(+3).anyStairs()
 			}
@@ -116,9 +121,9 @@ sealed class IonTurretMultiblock : TurretMultiblock() {
 		z(+2) {
 			y(getSign() * 3) {
 				x(-2).ironBlock()
-				x(-1).terracottaOrDoubleslab()
+				x(-1).terracottaOrDoubleSlab()
 				x(+0).anyConcrete()
-				x(+1).terracottaOrDoubleslab()
+				x(+1).terracottaOrDoubleSlab()
 				x(+2).ironBlock()
 			}
 			y(getSign() * 4) {
@@ -130,7 +135,7 @@ sealed class IonTurretMultiblock : TurretMultiblock() {
 		z(+3) {
 			y(getSign() * 3) {
 				x(-1).anyStairs()
-				x(+0).terracottaOrDoubleslab()
+				x(+0).terracottaOrDoubleSlab()
 				x(+1).anyStairs()
 			}
 		}

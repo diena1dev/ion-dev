@@ -3,7 +3,6 @@ package net.horizonsend.ion.server.features.multiblock.type.fluid.collector
 import net.horizonsend.ion.common.extensions.information
 import net.horizonsend.ion.common.utils.text.ofChildren
 import net.horizonsend.ion.server.features.client.display.modular.DisplayHandlers
-import net.horizonsend.ion.server.features.client.display.modular.display.fluid.SimpleFluidDisplay
 import net.horizonsend.ion.server.features.multiblock.Multiblock
 import net.horizonsend.ion.server.features.multiblock.entity.MultiblockEntity
 import net.horizonsend.ion.server.features.multiblock.entity.PersistentMultiblockData
@@ -15,6 +14,7 @@ import net.horizonsend.ion.server.features.multiblock.entity.type.ticked.AsyncTi
 import net.horizonsend.ion.server.features.multiblock.entity.type.ticked.TickedMultiblockEntityParent.TickingManager
 import net.horizonsend.ion.server.features.multiblock.manager.MultiblockManager
 import net.horizonsend.ion.server.features.multiblock.shape.MultiblockShape
+import net.horizonsend.ion.server.features.multiblock.type.DisplayNameMultilblock
 import net.horizonsend.ion.server.features.multiblock.type.EntityMultiblock
 import net.horizonsend.ion.server.features.multiblock.type.InteractableMultiblock
 import net.horizonsend.ion.server.features.transport.fluids.FluidStack
@@ -39,8 +39,14 @@ import kotlin.math.roundToInt
 
 object PipedGasCollectorMultiblock : Multiblock(),
 	EntityMultiblock<PipedGasCollectorMultiblock.GasCollectorEntity>,
-	InteractableMultiblock {
+	InteractableMultiblock,
+	DisplayNameMultilblock {
 	override val name: String = "gascollector"
+
+	override val displayName: Component
+		get() = text("Piped Gas Collector")
+	override val description: Component
+		get() = text("Fills itself with random gases on this planet.")
 
 	override val signText: Array<Component?> = arrayOf(
 		ofChildren(text("Gas ", RED), text("Collector", GOLD)),
@@ -108,7 +114,7 @@ object PipedGasCollectorMultiblock : Multiblock(),
 		z: Int,
 		world: World,
 		structureDirection: BlockFace,
-	) : MultiblockEntity(manager, PipedGasCollectorMultiblock, x, y, z, world, structureDirection), AsyncTickingMultiblockEntity, FluidStoringEntity, DisplayMultiblockEntity {
+	) : MultiblockEntity(manager, PipedGasCollectorMultiblock, world, x, y, z, structureDirection), AsyncTickingMultiblockEntity, FluidStoringEntity, DisplayMultiblockEntity {
 		override val tickingManager: TickingManager = TickingManager(interval = 4)
 
 		override val fluidStores: Array<StorageContainer> = arrayOf(
@@ -119,9 +125,7 @@ object PipedGasCollectorMultiblock : Multiblock(),
 
 		override val displayHandler = DisplayHandlers.newMultiblockSignOverlay(
 			this,
-			SimpleFluidDisplay(getNamedStorage("tank_1"), +0.0, +0.10, 0.0, 0.45f),
-			SimpleFluidDisplay(getNamedStorage("tank_2"), +0.0, -0.00, 0.0, 0.45f),
-			SimpleFluidDisplay(getNamedStorage("tank_3"), +0.0, -0.10, 0.0, 0.45f)
+
 		).register()
 
 		override val inputsData: InputsData = InputsData.builder(this)

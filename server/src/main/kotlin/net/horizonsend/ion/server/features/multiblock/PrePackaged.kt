@@ -1,6 +1,12 @@
 package net.horizonsend.ion.server.features.multiblock
 
+import io.papermc.paper.datacomponent.DataComponentTypes
+import io.papermc.paper.datacomponent.item.ItemContainerContents
 import net.horizonsend.ion.common.extensions.userError
+import net.horizonsend.ion.server.features.client.display.ClientDisplayEntities.highlightBlocks
+import net.horizonsend.ion.server.features.custom.items.CustomItemRegistry
+import net.horizonsend.ion.server.features.custom.items.CustomItemRegistry.customItem
+import net.horizonsend.ion.server.features.custom.items.misc.MultiblockToken
 import net.horizonsend.ion.server.features.custom.items.misc.PackagedMultiblock
 import net.horizonsend.ion.server.features.multiblock.MultiblockEntities.loadFromData
 import net.horizonsend.ion.server.features.multiblock.MultiblockEntities.setMultiblockEntity
@@ -11,9 +17,12 @@ import net.horizonsend.ion.server.features.multiblock.shape.BlockRequirement
 import net.horizonsend.ion.server.features.multiblock.shape.MultiblockShape
 import net.horizonsend.ion.server.features.multiblock.type.EntityMultiblock
 import net.horizonsend.ion.server.features.multiblock.type.starship.weapon.SignlessStarshipWeaponMultiblock
+import net.horizonsend.ion.server.features.transport.NewTransport
+import net.horizonsend.ion.server.listener.SLEventListener
 import net.horizonsend.ion.server.miscellaneous.registrations.persistence.NamespacedKeys.MULTIBLOCK
 import net.horizonsend.ion.server.miscellaneous.registrations.persistence.NamespacedKeys.MULTIBLOCK_ENTITY_DATA
 import net.horizonsend.ion.server.miscellaneous.utils.LegacyItemUtils
+import net.horizonsend.ion.server.miscellaneous.utils.PerPlayerCooldown
 import net.horizonsend.ion.server.miscellaneous.utils.coordinates.Vec3i
 import net.horizonsend.ion.server.miscellaneous.utils.front
 import net.horizonsend.ion.server.miscellaneous.utils.getBlockDataSafe
@@ -21,6 +30,7 @@ import net.horizonsend.ion.server.miscellaneous.utils.getFacing
 import net.horizonsend.ion.server.miscellaneous.utils.getRelativeIfLoaded
 import net.horizonsend.ion.server.miscellaneous.utils.isSign
 import net.horizonsend.ion.server.miscellaneous.utils.isWallSign
+import net.horizonsend.ion.server.miscellaneous.utils.updateData
 import net.horizonsend.ion.server.miscellaneous.utils.updateMeta
 import net.kyori.adventure.text.Component.text
 import org.bukkit.Material
@@ -32,9 +42,13 @@ import org.bukkit.block.data.BlockData
 import org.bukkit.block.data.Directional
 import org.bukkit.block.data.type.WallSign
 import org.bukkit.block.sign.Side
+import org.bukkit.entity.LivingEntity
 import org.bukkit.entity.Player
+import org.bukkit.event.EventHandler
 import org.bukkit.event.block.BlockBreakEvent
 import org.bukkit.event.block.BlockPlaceEvent
+import org.bukkit.event.inventory.PrepareItemCraftEvent
+import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.inventory.EquipmentSlot
 import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.InventoryHolder
@@ -44,7 +58,7 @@ import org.bukkit.persistence.PersistentDataContainer
 import org.bukkit.persistence.PersistentDataType
 import org.bukkit.persistence.PersistentDataType.STRING
 
-object PrePackaged {
+object PrePackaged : SLEventListener() {
 	fun getOriginFromPlacement(clickedBlock: Block, direction: BlockFace, shape: MultiblockShape): Block {
 		val requirements = shape.getRequirementMap(direction)
 		val minY = requirements.entries.minOfOrNull { it.key.y } ?: throw NullPointerException("Multiblock has no shape!")
@@ -85,7 +99,9 @@ object PrePackaged {
 		return obstructed
 	}
 
-	fun place(player: Player, origin: Block, direction: BlockFace, multiblock: Multiblock, itemSource: Inventory?, entityData: PersistentMultiblockData?) {
+	private val cooldown = PerPlayerCooldown(100L)
+
+	fun place(player: Player, origin: Block, direction: BlockFace, multiblock: Multiblock, itemSource: List<ItemStack>?, entityData: PersistentMultiblockData?) = cooldown.tryExec(player) {
 		val requirements = multiblock.shape.getRequirementMap(direction)
 		val placements = mutableMapOf<Block, BlockData>()
 
@@ -100,15 +116,11 @@ object PrePackaged {
 
 			var usedItem: ItemStack? = null
 
-			if (itemSource != null) {
-				itemSource
-					.filterNotNull()
-					.firstOrNull { requirement.itemRequirement.itemCheck(it) }
-					?.let {
-						usedItem = it.clone()
-						requirement.itemRequirement.consume(it)
-					}
-			}
+			itemSource?.firstOrNull { requirement.itemRequirement.itemCheck(it) }
+				?.let {
+					usedItem = it.clone()
+					requirement.itemRequirement.consume(it)
+				}
 
 			val event = BlockPlaceEvent(
 				existingBlock,
@@ -120,7 +132,7 @@ object PrePackaged {
 				EquipmentSlot.HAND
 			).callEvent()
 
-			if (!event) return player.userError("You can't build here!")
+			if (!event) return@tryExec player.userError("You can't build here!")
 
 			val placement = if (usedItem == null) {
 				requirement.example.clone()
@@ -134,16 +146,17 @@ object PrePackaged {
 		}
 
 		for ((block, placement) in placements) {
+			NewTransport.handleBlockEvent(block.world, block.x, block.y, block.z, block.blockData, placement)
 			block.blockData = placement
 			val soundGroup = placement.soundGroup
 			origin.world.playSound(block.location, soundGroup.placeSound, soundGroup.volume, soundGroup.pitch)
 		}
 
-		if (multiblock is SignlessStarshipWeaponMultiblock<*>) return
-		val signItem: ItemStack? = itemSource?.contents?.firstOrNull { it?.type?.isSign == true }
+		if (multiblock is SignlessStarshipWeaponMultiblock<*>) return@tryExec
+		val signItem: ItemStack? = itemSource?.firstOrNull { it.type.isSign == true }
 
 		// If there is an item source but no sign then there is not one available
-		if (itemSource != null && signItem == null) return
+		if (itemSource != null && signItem == null) return@tryExec
 
 		val signType = signItem?.type?.let { getWallSignType(it) } ?: Material.OAK_WALL_SIGN
 
@@ -189,7 +202,7 @@ object PrePackaged {
 				sign.update()
 
 				signItem.amount--
-				return
+				return@tryExec
 			}
 		}
 
@@ -241,15 +254,11 @@ object PrePackaged {
 
 	fun createPackagedItem(availableItems: List<ItemStack>, multiblock: Multiblock): ItemStack {
 		val base = PackagedMultiblock.createFor(multiblock)
-		return base.updateMeta {
-			it as BlockStateMeta
 
-			@Suppress("UnstableApiUsage")
-			val newState = Material.CHEST.createBlockData().createBlockState() as Chest
-			packageFrom(availableItems, multiblock, newState.inventory)
+		@Suppress("UnstableApiUsage") val newState = Material.CHEST.createBlockData().createBlockState() as Chest
+		packageFrom(availableItems, multiblock, newState.inventory)
 
-			it.blockState = newState
-		}
+		return base.updateData(DataComponentTypes.CONTAINER, ItemContainerContents.containerContents(newState.inventory.contents.filterNotNull()))
 	}
 
 	/**
@@ -357,5 +366,35 @@ object PrePackaged {
 		if (material.isSign && !material.isWallSign) return material
 		val variant = material.name.removeSuffix("_WALL_SIGN")
 		return runCatching { Material.valueOf(variant + "_SIGN") }.getOrDefault(Material.OAK_SIGN)
+	}
+
+	@EventHandler
+	fun onCraftToken(event: PrepareItemCraftEvent) {
+		val contents = event.inventory.contents.filterNot { it == null || it.isEmpty }
+		if (contents.size != 1) return
+
+		val item = contents.first() ?: return
+		if (item.customItem != CustomItemRegistry.PACKAGED_MULTIBLOCK) return
+
+		val multiblock = getTokenData(item) ?: return
+		event.inventory.result = MultiblockToken.constructFor(multiblock)
+	}
+
+	fun tryPreview(livingEntity: LivingEntity, itemStack: ItemStack, event: PlayerInteractEvent) {
+		if (livingEntity !is Player) return
+
+		val packagedData = PrePackaged.getTokenData(itemStack) ?: run {
+			livingEntity.userError("The packaged multiblock has no data!")
+			return
+		}
+
+		val origin = PrePackaged.getOriginFromPlacement(
+			event.clickedBlock ?: return,
+			livingEntity.facing,
+			packagedData.shape
+		)
+
+		val locations = packagedData.shape.getLocations(livingEntity.facing).map { Vec3i(origin.x, origin.y, origin.z).plus(it) }
+		livingEntity.highlightBlocks(locations, 100L)
 	}
 }

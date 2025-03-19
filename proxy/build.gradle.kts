@@ -26,7 +26,7 @@ dependencies {
 
 	// Included Dependencies
 	implementation("co.aikar:acf-velocity:0.5.1-SNAPSHOT")
-	implementation("net.dv8tion:JDA:5.2.1")
+	implementation("net.dv8tion:JDA:5.2.2")
 	implementation("net.kyori:adventure-text-logger-slf4j:4.18.0")
 	implementation("dev.vankka:mcdiscordreserializer:4.3.0")
 }
@@ -34,7 +34,7 @@ dependencies {
 tasks.build { dependsOn("shadowJar") }
 tasks.shadowJar { archiveFileName.set("../../../build/IonProxy.jar") }
 
-kotlin.jvmToolchain(17)
+kotlin.jvmToolchain(21)
 
 tasks.withType<AbstractArchiveTask>().configureEach {
 	isPreserveFileTimestamps = false

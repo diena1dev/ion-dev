@@ -1,8 +1,10 @@
 package net.horizonsend.ion.server.features.multiblock.type.power.generator
 
+import net.horizonsend.ion.common.utils.text.legacyAmpersand
+import net.horizonsend.ion.common.utils.text.ofChildren
 import net.horizonsend.ion.server.features.client.display.modular.DisplayHandlers
-import net.horizonsend.ion.server.features.client.display.modular.display.PowerEntityDisplay
-import net.horizonsend.ion.server.features.client.display.modular.display.StatusDisplay
+import net.horizonsend.ion.server.features.client.display.modular.display.PowerEntityDisplayModule
+import net.horizonsend.ion.server.features.client.display.modular.display.StatusDisplayModule
 import net.horizonsend.ion.server.features.machine.GeneratorFuel
 import net.horizonsend.ion.server.features.multiblock.Multiblock
 import net.horizonsend.ion.server.features.multiblock.entity.PersistentMultiblockData
@@ -14,7 +16,9 @@ import net.horizonsend.ion.server.features.multiblock.entity.type.ticked.SyncTic
 import net.horizonsend.ion.server.features.multiblock.entity.type.ticked.TickedMultiblockEntityParent
 import net.horizonsend.ion.server.features.multiblock.manager.MultiblockManager
 import net.horizonsend.ion.server.features.multiblock.shape.MultiblockShape
+import net.horizonsend.ion.server.features.multiblock.type.DisplayNameMultilblock
 import net.horizonsend.ion.server.features.multiblock.type.EntityMultiblock
+import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.Component.text
 import net.kyori.adventure.text.format.NamedTextColor.GREEN
 import net.kyori.adventure.text.format.NamedTextColor.RED
@@ -25,17 +29,20 @@ import org.bukkit.block.BlockFace
 import org.bukkit.block.Sign
 import org.bukkit.inventory.FurnaceInventory
 
-abstract class GeneratorMultiblock(tierText: String, private val tierMaterial: Material) : Multiblock(), EntityMultiblock<GeneratorMultiblock.GeneratorMultiblockEntity> {
+abstract class GeneratorMultiblock(tierText: String, private val tierMaterial: Material) : Multiblock(), EntityMultiblock<GeneratorMultiblock.GeneratorMultiblockEntity>, DisplayNameMultilblock {
 	override val name = "generator"
 	abstract val speed: Double
 
 	abstract val maxPower: Int
 
+	override val displayName: Component = ofChildren(legacyAmpersand.deserialize(tierText), text(" Generator"))
+	override val description: Component get() = text("Burns a fuel to generate to be used by other machines.")
+
 	override val signText = createSignText(
-		line1 = "&2Power",
+		line1 = "$tierText &2Power",
 		line2 = "&8Generator",
 		line3 = null,
-		line4 = tierText
+		line4 = null
 	)
 
 	override fun MultiblockShape.buildStructure() {
@@ -73,8 +80,8 @@ abstract class GeneratorMultiblock(tierText: String, private val tierMaterial: M
 
 		override val displayHandler = DisplayHandlers.newMultiblockSignOverlay(
 			this,
-			PowerEntityDisplay(this, +0.0, +0.0, +0.0, 0.45f),
-			StatusDisplay(statusManager, +0.0, -0.10, +0.0, 0.45f)
+			{ PowerEntityDisplayModule(it, this) },
+			{ StatusDisplayModule(it, statusManager) }
 		).register()
 
 		override fun tick() {
@@ -104,6 +111,7 @@ abstract class GeneratorMultiblock(tierText: String, private val tierMaterial: M
 
 		override fun loadFromSign(sign: Sign) {
 			migrateLegacyPower(sign)
+			resetSign(sign, multiblock)
 		}
 	}
 }

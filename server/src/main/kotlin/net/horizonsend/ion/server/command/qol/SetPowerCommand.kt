@@ -11,6 +11,7 @@ import net.horizonsend.ion.server.command.admin.debug
 import net.horizonsend.ion.server.features.multiblock.MultiblockEntities
 import net.horizonsend.ion.server.features.multiblock.entity.type.power.PoweredMultiblockEntity
 import net.horizonsend.ion.server.miscellaneous.utils.getSelection
+import org.bukkit.block.data.type.WallSign
 import org.bukkit.entity.Player
 
 @CommandAlias("setpower")
@@ -30,7 +31,7 @@ object SetPowerCommand : SLCommand() {
 
 		if (sender.world.name != selection.world?.name) return
 
-		var hits = 0
+		val entities = mutableSetOf<PoweredMultiblockEntity>()
 
 		for (blockPosition in selection) {
 			val x = blockPosition.x()
@@ -39,15 +40,25 @@ object SetPowerCommand : SLCommand() {
 
 			sender.debug("checking block at $x $y $z")
 
+			val data = sender.world.getBlockData(x, y, z)
+			if (data is WallSign) {
+				val entity = MultiblockEntities.getMultiblockEntity(x, y, z, sender.world, data)
+
+				if (entity is PoweredMultiblockEntity) {
+					entities.add(entity)
+				}
+			}
+
 			val entity = MultiblockEntities.getMultiblockEntity(sender.world, x, y ,z)
 			if (entity !is PoweredMultiblockEntity) continue
 
-			entity.powerStorage.setPower(amount)
-			hits++
-
-			sender.debug("power sent")
+			entities.add(entity)
 		}
 
-		sender.success("Set power to $amount in $hits multiblocks.")
+		entities.forEach { entity ->
+			entity.powerStorage.setPower(amount)
+		}
+
+		sender.success("Set power to $amount in ${entities.size} multiblocks.")
 	}
 }

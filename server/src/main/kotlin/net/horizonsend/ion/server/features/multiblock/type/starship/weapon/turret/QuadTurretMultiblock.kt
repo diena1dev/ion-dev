@@ -8,6 +8,8 @@ import net.horizonsend.ion.server.features.starship.subsystem.weapon.TurretWeapo
 import net.horizonsend.ion.server.features.starship.subsystem.weapon.primary.QuadTurretWeaponSubsystem
 import net.horizonsend.ion.server.features.starship.subsystem.weapon.projectile.QuadTurretProjectile
 import net.horizonsend.ion.server.miscellaneous.utils.coordinates.Vec3i
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.Component.text
 import org.bukkit.Material.GRINDSTONE
 import org.bukkit.Material.IRON_TRAPDOOR
 import org.bukkit.World
@@ -23,6 +25,8 @@ sealed class QuadTurretMultiblock : TurretMultiblock() {
 
 	protected abstract fun getSign(): Int
 
+	override val displayName: Component get() = text("Quad Turret (${if (getSign() == 1) "Top" else "Bottom"})")
+	override val description: Component get() = text("Rotating weapon system effective against the largest targets. Manual fire only. Consumes ammo.")
 
 	override fun getBalancing(starship: ActiveStarship): StarshipWeapons.StarshipWeapon = starship.balancing.weapons.quadTurret
 
@@ -33,7 +37,7 @@ sealed class QuadTurretMultiblock : TurretMultiblock() {
 		z(-4) {
 			y(getSign() * 3) {
 				x(-1).anyStairs()
-				x(0).terracottaOrDoubleslab()
+				x(0).terracottaOrDoubleSlab()
 				x(+1).anyStairs()
 			}
 		}
@@ -63,9 +67,9 @@ sealed class QuadTurretMultiblock : TurretMultiblock() {
 			}
 			y(getSign() * 4) {
 				x(-2).anyStairs()
-				x(-1).terracottaOrDoubleslab()
+				x(-1).terracottaOrDoubleSlab()
 				x(0).anyStairs()
-				x(+1).terracottaOrDoubleslab()
+				x(+1).terracottaOrDoubleSlab()
 				x(+2).anyStairs()
 			}
 		}
@@ -86,11 +90,11 @@ sealed class QuadTurretMultiblock : TurretMultiblock() {
 			}
 			y(getSign() * 4) {
 				x(-3).anySlab()
-				x(-2).terracottaOrDoubleslab()
-				x(-1).terracottaOrDoubleslab()
-				x(+0).terracottaOrDoubleslab()
-				x(+1).terracottaOrDoubleslab()
-				x(+2).terracottaOrDoubleslab()
+				x(-2).terracottaOrDoubleSlab()
+				x(-1).terracottaOrDoubleSlab()
+				x(+0).terracottaOrDoubleSlab()
+				x(+1).terracottaOrDoubleSlab()
+				x(+2).terracottaOrDoubleSlab()
 				x(+3).anySlab()
 			}
 		}
@@ -100,22 +104,22 @@ sealed class QuadTurretMultiblock : TurretMultiblock() {
 				x(+1).sponge()
 			}
 			y(getSign() * 3) {
-				x(-4).terracottaOrDoubleslab()
+				x(-4).terracottaOrDoubleSlab()
 				x(-3).anyConcrete()
-				x(-2).terracottaOrDoubleslab()
+				x(-2).terracottaOrDoubleSlab()
 				x(-1).anyConcrete()
 				x(+0).anyConcrete()
 				x(+1).anyConcrete()
-				x(+2).terracottaOrDoubleslab()
+				x(+2).terracottaOrDoubleSlab()
 				x(+3).anyConcrete()
-				x(+4).terracottaOrDoubleslab()
+				x(+4).terracottaOrDoubleSlab()
 			}
 			y(getSign() * 4) {
 				x(-3).anySlab()
 				x(-2).type(GRINDSTONE)
-				x(-1).terracottaOrDoubleslab()
+				x(-1).terracottaOrDoubleSlab()
 				x(+0).anyStairs()
-				x(+1).terracottaOrDoubleslab()
+				x(+1).terracottaOrDoubleSlab()
 				x(+2).type(GRINDSTONE)
 				x(+3).anySlab()
 			}
@@ -127,11 +131,11 @@ sealed class QuadTurretMultiblock : TurretMultiblock() {
 			y(getSign() * 3) {
 				x(-4).anyStairs()
 				x(-3).anyConcrete()
-				x(-2).terracottaOrDoubleslab()
-				x(-1).terracottaOrDoubleslab()
+				x(-2).terracottaOrDoubleSlab()
+				x(-1).terracottaOrDoubleSlab()
 				x(+0).anyConcrete()
-				x(+1).terracottaOrDoubleslab()
-				x(+2).terracottaOrDoubleslab()
+				x(+1).terracottaOrDoubleSlab()
+				x(+2).terracottaOrDoubleSlab()
 				x(+3).anyConcrete()
 				x(+4).anyStairs()
 			}
@@ -148,11 +152,11 @@ sealed class QuadTurretMultiblock : TurretMultiblock() {
 		z(+2) {
 			y(getSign() * 3) {
 				x(-3).ironBlock()
-				x(-2).terracottaOrDoubleslab()
-				x(-1).terracottaOrDoubleslab()
+				x(-2).terracottaOrDoubleSlab()
+				x(-1).terracottaOrDoubleSlab()
 				x(+0).anyConcrete()
-				x(+1).terracottaOrDoubleslab()
-				x(+2).terracottaOrDoubleslab()
+				x(+1).terracottaOrDoubleSlab()
+				x(+2).terracottaOrDoubleSlab()
 				x(+3).ironBlock()
 			}
 			y(getSign() * 4) {
@@ -166,9 +170,9 @@ sealed class QuadTurretMultiblock : TurretMultiblock() {
 		z(+3) {
 			y(getSign() * 3) {
 				x(-2).ironBlock()
-				x(-1).terracottaOrDoubleslab()
+				x(-1).terracottaOrDoubleSlab()
 				x(0).anyConcrete()
-				x(+1).terracottaOrDoubleslab()
+				x(+1).terracottaOrDoubleSlab()
 				x(+2).ironBlock()
 			}
 			y(getSign() * 4) {
@@ -180,7 +184,7 @@ sealed class QuadTurretMultiblock : TurretMultiblock() {
 		z(+4) {
 			y(getSign() * 3) {
 				x(-1).anyStairs()
-				x(0).terracottaOrDoubleslab()
+				x(0).terracottaOrDoubleSlab()
 				x(+1).anyStairs()
 			}
 		}

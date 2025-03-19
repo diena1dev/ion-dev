@@ -1,8 +1,7 @@
 package net.horizonsend.ion.server.features.space.body
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
-import net.horizonsend.ion.server.miscellaneous.utils.blockplacement.BlockPlacement.placeQueueEfficiently
-import net.horizonsend.ion.server.miscellaneous.utils.Tasks
+import net.horizonsend.ion.server.miscellaneous.utils.blockplacement.BlockPlacement.placeImmediate
 import net.horizonsend.ion.server.miscellaneous.utils.coordinates.Vec3i
 import net.horizonsend.ion.server.miscellaneous.utils.coordinates.blockKey
 import net.minecraft.world.level.block.Blocks
@@ -20,6 +19,7 @@ abstract class CelestialBody(spaceWorldName: String, location: Vec3i) {
 
 	private fun airQueue(structure: Map<Vec3i, BlockState>): Long2ObjectOpenHashMap<BlockState> {
 		val blocks = Long2ObjectOpenHashMap<BlockState>(structure.size * 2)
+
 		val air = Blocks.AIR.defaultBlockState()
 
 		for ((x, y, z) in structure.keys) {
@@ -31,38 +31,34 @@ abstract class CelestialBody(spaceWorldName: String, location: Vec3i) {
 	fun erase() {
 		val spaceWorld = this.spaceWorld ?: return
 		val blocks = airQueue(createStructure())
-
-		Tasks.async {
-			placeQueueEfficiently(spaceWorld, blocks)
-		}
+		placeImmediate(spaceWorld, blocks)
 	}
 
 	fun generate() {
 		val spaceWorld = this.spaceWorld ?: return
+
 		val structure = createStructure()
 
-		Tasks.async {
-			placeQueueEfficiently(
-				spaceWorld,
-				structure.mapKeysTo(Long2ObjectOpenHashMap(structure.size)) { (intTrio, _) ->
-					blockKey(intTrio.x + location.x, intTrio.y + location.y, intTrio.z + location.z)
-				}
-			)
-		}
+		placeImmediate(
+			spaceWorld,
+			structure.mapKeysTo(Long2ObjectOpenHashMap(structure.size)) { (intTrio, _) ->
+				blockKey(intTrio.x + location.x, intTrio.y + location.y, intTrio.z + location.z)
+			}
+		)
 	}
 
 	fun move(newLoc: Vec3i) {
 		val spaceWorld = this.spaceWorld ?: return
+
 		val structure = createStructure()
+
 		val blocks = airQueue(structure)
 
 		structure.mapKeysTo(blocks) { (intTrio, _) ->
 			blockKey(intTrio.x + newLoc.x, intTrio.y + newLoc.y, intTrio.z + newLoc.z)
 		}
 
-		Tasks.async {
-			placeQueueEfficiently(spaceWorld, blocks)
-		}
+		placeImmediate(spaceWorld, blocks)
 
 		blocks.clear()
 

@@ -29,7 +29,6 @@ import net.horizonsend.ion.server.features.economy.collectors.Collectors
 import net.horizonsend.ion.server.features.gas.Gasses
 import net.horizonsend.ion.server.features.machine.AntiAirCannons
 import net.horizonsend.ion.server.features.machine.AreaShields
-import net.horizonsend.ion.server.features.machine.PowerMachines
 import net.horizonsend.ion.server.features.misc.AutoRestart
 import net.horizonsend.ion.server.features.misc.CapturableStationCache
 import net.horizonsend.ion.server.features.misc.GameplayTweaks
@@ -39,8 +38,7 @@ import net.horizonsend.ion.server.features.misc.UnusedSoldShipPurge
 import net.horizonsend.ion.server.features.multiblock.MultiblockAccess
 import net.horizonsend.ion.server.features.multiblock.MultiblockRegistration
 import net.horizonsend.ion.server.features.multiblock.MultiblockTicking
-import net.horizonsend.ion.server.features.multiblock.crafting.MultiblockRecipes
-import net.horizonsend.ion.server.features.multiblock.type.misc.Halloweeeeeen
+import net.horizonsend.ion.server.features.multiblock.crafting.MultiblockRecipeRegistry
 import net.horizonsend.ion.server.features.nations.NationsBalancing
 import net.horizonsend.ion.server.features.nations.NationsMap
 import net.horizonsend.ion.server.features.nations.NationsMasterTasks
@@ -89,13 +87,8 @@ import net.horizonsend.ion.server.features.starship.hyperspace.HyperspaceBeacons
 import net.horizonsend.ion.server.features.starship.movement.PlanetTeleportCooldown
 import net.horizonsend.ion.server.features.starship.subsystem.shield.StarshipShields
 import net.horizonsend.ion.server.features.transport.NewTransport
-import net.horizonsend.ion.server.features.transport.filters.FilterAccess
-import net.horizonsend.ion.server.features.transport.filters.FilterBlocks
+import net.horizonsend.ion.server.features.transport.filters.FilterType
 import net.horizonsend.ion.server.features.transport.fluids.FluidRegistry
-import net.horizonsend.ion.server.features.transport.old.TransportConfig
-import net.horizonsend.ion.server.features.transport.old.Wires
-import net.horizonsend.ion.server.features.transport.old.pipe.Pipes
-import net.horizonsend.ion.server.features.transport.old.pipe.filter.Filters
 import net.horizonsend.ion.server.features.tutorial.Tutorials
 import net.horizonsend.ion.server.features.waypoint.WaypointManager
 import net.horizonsend.ion.server.features.world.IonWorld
@@ -139,19 +132,12 @@ val components: List<IonComponent> = listOf(
 	StationSieges,
 	SolarSieges,
 
-	MultiblockRecipes,
 	MultiblockRegistration,
 	MultiblockAccess,
 	MultiblockTicking,
-	PowerMachines,
 	AreaShields,
 
-	FilterBlocks,
-	FilterAccess,
-	TransportConfig.Companion,
-	Pipes,
-	Filters,
-	Wires,
+	FilterType,
 	NewTransport,
 
 	SwordListener,
@@ -234,7 +220,7 @@ val components: List<IonComponent> = listOf(
 	CombatTimer,
 	WorldEditListener,
 	DisplayHandlers,
-	Halloweeeeeen,
 	PlanetTeleportCooldown,
 	MultiBlockDisplay,
+	MultiblockRecipeRegistry,
 )

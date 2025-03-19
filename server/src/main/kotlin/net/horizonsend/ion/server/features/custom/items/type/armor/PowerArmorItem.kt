@@ -13,11 +13,13 @@ import net.horizonsend.ion.server.features.custom.items.component.CustomItemComp
 import net.horizonsend.ion.server.features.custom.items.component.Listener.Companion.rightClickListener
 import net.horizonsend.ion.server.features.custom.items.component.ModManager
 import net.horizonsend.ion.server.features.custom.items.component.PowerStorage
-import net.horizonsend.ion.server.features.custom.items.component.TickRecievierModule
+import net.horizonsend.ion.server.features.custom.items.component.TickReceiverModule
 import net.horizonsend.ion.server.features.custom.items.type.tool.mods.ItemModRegistry
+import net.horizonsend.ion.server.features.custom.items.type.tool.mods.armor.RocketBoostingMod
 import net.horizonsend.ion.server.features.custom.items.type.tool.mods.armor.RocketBoostingMod.glideDisabledPlayers
 import net.horizonsend.ion.server.features.custom.items.type.tool.mods.armor.RocketBoostingMod.setGliding
 import net.horizonsend.ion.server.features.custom.items.util.ItemFactory
+import net.horizonsend.ion.server.features.starship.active.ActiveStarships
 import net.horizonsend.ion.server.features.world.IonWorld.Companion.hasFlag
 import net.horizonsend.ion.server.features.world.WorldFlag
 import net.horizonsend.ion.server.miscellaneous.registrations.persistence.NamespacedKeys
@@ -58,8 +60,8 @@ class PowerArmorItem(
 		)
 		.addData(DataComponentTypes.ATTRIBUTE_MODIFIERS, ItemAttributeModifiers
 			.itemAttributes()
-			.addModifier(Attribute.ARMOR, AttributeModifier(NamespacedKeys.key(identifier), 5.0, AttributeModifier.Operation.ADD_NUMBER, slot.group))
-			.addModifier(Attribute.ARMOR_TOUGHNESS, AttributeModifier(NamespacedKeys.key(identifier), 2.0, AttributeModifier.Operation.ADD_NUMBER, slot.group))
+			.addModifier(Attribute.ARMOR, AttributeModifier(NamespacedKeys.key(identifier), 2.0, AttributeModifier.Operation.ADD_NUMBER, slot.group))
+//			.addModifier(Attribute.ARMOR_TOUGHNESS, AttributeModifier(NamespacedKeys.key(identifier), 2.0, AttributeModifier.Operation.ADD_NUMBER, slot.group))
 			.build())
 		.build()
 ) {
@@ -75,12 +77,12 @@ class PowerArmorItem(
 			modManger.openMenu(event.player, this@PowerArmorItem, item)
 		})
 
-		addComponent(CustomComponentTypes.TICK_RECIEVER, TickRecievierModule(20) { entity, itemStack, _ ->
+		addComponent(CustomComponentTypes.TICK_RECIEVER, TickReceiverModule(20) { entity, itemStack, _, _ ->
 			tickPowerMods(entity, itemStack)
 		})
 
-		addComponent(CustomComponentTypes.TICK_RECIEVER, TickRecievierModule(1) { entity, itemStack, _ ->
-			tickRocketBoots(entity, itemStack)
+		addComponent(CustomComponentTypes.TICK_RECIEVER, TickReceiverModule(1) { entity, itemStack, _, equipmentSlot ->
+			tickRocketBoots(entity, itemStack, equipmentSlot)
 		})
 	}
 
@@ -99,8 +101,11 @@ class PowerArmorItem(
 		}
 	}
 
-	fun tickRocketBoots(entity: LivingEntity, itemStack: ItemStack) {
+	fun tickRocketBoots(entity: LivingEntity, itemStack: ItemStack, equipmentSlot: EquipmentSlot) {
 		if (entity !is Player) return
+		if (equipmentSlot != EquipmentSlot.FEET) return
+
+		if (ActiveStarships.findByPilot(entity) != null && entity.inventory.itemInMainHand.type == Material.CLOCK) return
 
 		val mods = getComponent(MOD_MANAGER).getMods(itemStack)
 		if (!mods.contains(ItemModRegistry.ROCKET_BOOSTING)) {
@@ -116,7 +121,8 @@ class PowerArmorItem(
 		glideDisabledPlayers[entity.uniqueId]?.let { glideDisabledPlayers.remove(entity.uniqueId) } // remove if not disabled
 
 		@Suppress("DEPRECATION") // Any other method would cause weirdness not allow low flight
-		if (entity.isOnGround || !entity.isSneaking) {
+		// RocketBoostingMod sets glidingPlayers only on the ToggleSneakEvent (in PowerArmorListener)
+		if (entity.isOnGround || !entity.isSneaking || !RocketBoostingMod.glidingPlayers.contains(entity.uniqueId)) {
 			setGliding(entity, false)
 			return
 		}

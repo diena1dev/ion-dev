@@ -18,26 +18,38 @@ import net.horizonsend.ion.server.features.client.display.ClientDisplayEntities.
 import net.horizonsend.ion.server.features.client.display.ClientDisplayEntities.highlightBlock
 import net.horizonsend.ion.server.features.client.display.ClientDisplayEntities.sendEntityPacket
 import net.horizonsend.ion.server.features.custom.items.misc.MultiblockToken
+import net.horizonsend.ion.server.features.gui.GuiItems
 import net.horizonsend.ion.server.features.multiblock.Multiblock
 import net.horizonsend.ion.server.features.multiblock.MultiblockRegistration
+import net.horizonsend.ion.server.features.multiblock.type.DisplayNameMultilblock.Companion.getDisplayName
+import net.horizonsend.ion.server.features.multiblock.type.DisplayNameMultilblock.Companion.getIcon
 import net.horizonsend.ion.server.features.world.chunk.IonChunk.Companion.ion
 import net.horizonsend.ion.server.miscellaneous.utils.coordinates.Vec3i
 import net.horizonsend.ion.server.miscellaneous.utils.coordinates.toVec3i
 import net.horizonsend.ion.server.miscellaneous.utils.getFacing
 import net.horizonsend.ion.server.miscellaneous.utils.getRelativeIfLoaded
 import net.horizonsend.ion.server.miscellaneous.utils.minecraft
+import net.horizonsend.ion.server.miscellaneous.utils.text.itemName
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.Component.text
 import net.kyori.adventure.text.event.ClickEvent
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
+import org.bukkit.Material
 import org.bukkit.block.Block
 import org.bukkit.block.Sign
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
 import org.bukkit.event.block.BlockPlaceEvent
+import org.bukkit.event.inventory.ClickType
+import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.inventory.EquipmentSlot
+import org.bukkit.inventory.ItemStack
 import org.bukkit.util.Vector
+import xyz.xenondevs.invui.gui.PagedGui
+import xyz.xenondevs.invui.gui.structure.Markers
+import xyz.xenondevs.invui.item.ItemProvider
+import xyz.xenondevs.invui.window.Window
 
 @CommandAlias("multiblock")
 object MultiblockCommand : SLCommand() {
@@ -68,8 +80,8 @@ object MultiblockCommand : SLCommand() {
 			return
 		}
 
-		val message = Component.text()
-			.append(Component.text("Which type of $multiblockType are you trying to build? (Click one)"))
+		val message = text()
+			.append(text("Which type of $multiblockType are you trying to build? (Click one)"))
 			.append(Component.newline())
 
 		for (tier in possibleTiers) {
@@ -77,9 +89,9 @@ object MultiblockCommand : SLCommand() {
 
 			val command = "/multiblock check $tierName ${sign.x} ${sign.y} ${sign.z}"
 
-			val tierText = bracketed(Component.text(tierName, NamedTextColor.DARK_GREEN, TextDecoration.BOLD))
+			val tierText = bracketed(text(tierName, NamedTextColor.DARK_GREEN, TextDecoration.BOLD))
 				.clickEvent(ClickEvent.runCommand(command))
-				.hoverEvent(Component.text(command).asHoverEvent())
+				.hoverEvent(text(command).asHoverEvent())
 
 			message.append(tierText)
 			if (possibleTiers.indexOf(tier) != possibleTiers.size - 1) message.append(Component.text(", "))
@@ -167,24 +179,20 @@ object MultiblockCommand : SLCommand() {
 		val manager = sender.chunk.ion().multiblockManager
 		val entities = manager.getAllMultiblockEntities().toList()
 
-		sender.sendMessage(
-			formatPaginatedMenu(
-				entities.size,
-				"/ionchunk dumpentities ${visual ?: false}",
-				page ?: 1,
-			) { index ->
-				val (key, entity) = entities[index]
+		sender.sendMessage(formatPaginatedMenu(
+			entities,
+			"/ionchunk dumpentities ${visual == true}",
+			page ?: 1,
+		) { entry, index ->
+			val (key, entity) = entry
+			val vec = toVec3i(key)
 
-				val vec = toVec3i(key)
-
-				text("$vec : $entity")
-			})
+			text("$vec : $entity")
+		})
 
 		if (visual == true) {
-			for ((key, _) in entities) {
-				val vec = toVec3i(key)
-
-				sender.highlightBlock(vec, 30L)
+			for ((_, entity) in entities) {
+				sender.highlightBlock(entity.globalVec3i, 30L)
 			}
 		}
 
@@ -199,24 +207,21 @@ object MultiblockCommand : SLCommand() {
 		val manager = ship.multiblockManager
 		val entities = manager.getAllMultiblockEntities().toList()
 
-		sender.sendMessage(
-			formatPaginatedMenu(
-				entities.size,
-				"/ionchunk dumpentities ${visual ?: false}",
-				page ?: 1,
-			) { index ->
-				val (key, entity) = entities[index]
+		sender.sendMessage(formatPaginatedMenu(
+			entities.size,
+			"/ionchunk dumpentities ${visual ?: false}",
+			page ?: 1,
+		) { index ->
+			val (key, entity) = entities[index]
 
-				val vec = toVec3i(key)
+			val vec = toVec3i(key)
 
-				text("$vec : $entity")
-			})
+			text("$vec : $entity")
+		})
 
 		if (visual == true) {
-			for ((key, _) in entities) {
-				val vec = toVec3i(key)
-
-				sender.highlightBlock(vec, 30L)
+			for ((_, entity) in entities) {
+				sender.highlightBlock(entity.globalVec3i, 30L)
 			}
 		}
 
@@ -235,4 +240,40 @@ object MultiblockCommand : SLCommand() {
 			ionChunk.multiblockManager.removeMultiblockEntity(x, y, z)
 		}
 	}
+
+	@Subcommand("menu")
+	fun onTestAll(sender: Player) {
+		val allItems = MultiblockRegistration.getAllMultiblocks().map { multiblock ->
+			object : GuiItems.AbstractButtonItem(
+				multiblock.getDisplayName().itemName,
+				multiblock.getIcon()
+			) {
+				override fun handleClick(clickType: ClickType, player: Player, event: InventoryClickEvent) {
+					player.inventory.addItem(MultiblockToken.constructFor(multiblock))
+				}
+			}
+		}
+		val gui = PagedGui.items()
+			.setStructure(
+				"x x x x x x x x x",
+				"x x x x x x x x x",
+				"x x x x x x x x x",
+				"x x x x x x x x x",
+				"< # # # # # # # >",
+			)
+			.addIngredient('x', Markers.CONTENT_LIST_SLOT_HORIZONTAL)
+			.addIngredient('#', ItemProvider { ItemStack(Material.BLACK_STAINED_GLASS) })
+			.addIngredient('<', GuiItems.PageLeftItem())
+			.addIngredient('>', GuiItems.PageRightItem())
+			.setContent(allItems)
+			.build()
+
+		Window
+			.single()
+			.setGui(gui)
+			.setTitle("All Multiblocks")
+			.build(sender)
+			.open()
+	}
+
 }

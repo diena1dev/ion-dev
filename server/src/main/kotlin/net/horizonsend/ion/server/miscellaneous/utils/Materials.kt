@@ -1,8 +1,8 @@
 package net.horizonsend.ion.server.miscellaneous.utils
 
 import org.bukkit.Material
-import org.bukkit.block.data.Bisected
 import org.bukkit.Registry
+import org.bukkit.block.data.Bisected
 import java.util.EnumSet
 
 /**
@@ -13,6 +13,7 @@ val MATERIALS: Registry<Material> = Registry.MATERIAL
 fun getMatchingMaterials(filter: (Material) -> Boolean): EnumSet<Material> =
 	MATERIALS.filterTo(EnumSet.noneOf(Material::class.java), filter)
 
+val ALL_GLASS_TYPES = getMatchingMaterials { it.name.endsWith("_STAINED_GLASS") } + Material.GLASS
 val STAINED_GLASS_TYPES = getMatchingMaterials { it.name.endsWith("_STAINED_GLASS") }
 val Material.isGlass: Boolean get() = this == Material.GLASS || this.isStainedGlass
 val Material.isStainedGlass: Boolean get() = STAINED_GLASS_TYPES.contains(this)
@@ -34,6 +35,7 @@ val BUTTON_TYPES = getMatchingMaterials { it.name.endsWith("_BUTTON") }
 val Material.isButton: Boolean get() = BUTTON_TYPES.contains(this)
 
 val CANDLE_TYPES = getMatchingMaterials { it.name.endsWith("CANDLE") }
+val Material.isCandle get() = CANDLE_TYPES.contains(this)
 
 val CAKE_TYPES = getMatchingMaterials { it.name.endsWith("CAKE") }
 
@@ -179,3 +181,17 @@ val UNWAXED_CHISELED_COPPER_TYPES = enumSetOf(
 )
 
 val Material.isChiseledCopper get() = ALL_CHISELED_COPPER_TYPES.contains(this)
+
+val PIPED_INVENTORY_TYPES = enumSetOf(
+	Material.CHEST,
+	Material.TRAPPED_CHEST,
+	Material.BARREL,
+	Material.FURNACE,
+	Material.SMOKER,
+	Material.BLAST_FURNACE,
+	Material.DISPENSER,
+	Material.DROPPER,
+	Material.DECORATED_POT
+)
+
+val Material.isPipedInventory get() = PIPED_INVENTORY_TYPES.contains(this)

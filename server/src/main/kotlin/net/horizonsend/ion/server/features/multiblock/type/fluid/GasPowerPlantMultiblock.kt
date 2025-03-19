@@ -2,8 +2,8 @@ package net.horizonsend.ion.server.features.multiblock.type.fluid
 
 import net.horizonsend.ion.server.configuration.ConfigurationFiles
 import net.horizonsend.ion.server.features.client.display.modular.DisplayHandlers
-import net.horizonsend.ion.server.features.client.display.modular.display.PowerEntityDisplay
-import net.horizonsend.ion.server.features.client.display.modular.display.StatusDisplay
+import net.horizonsend.ion.server.features.client.display.modular.display.PowerEntityDisplayModule
+import net.horizonsend.ion.server.features.client.display.modular.display.StatusDisplayModule
 import net.horizonsend.ion.server.features.custom.items.CustomItemRegistry.customItem
 import net.horizonsend.ion.server.features.custom.items.type.GasCanister
 import net.horizonsend.ion.server.features.gas.Gasses.EMPTY_CANISTER
@@ -19,6 +19,7 @@ import net.horizonsend.ion.server.features.multiblock.entity.type.ticked.SyncTic
 import net.horizonsend.ion.server.features.multiblock.entity.type.ticked.TickedMultiblockEntityParent
 import net.horizonsend.ion.server.features.multiblock.manager.MultiblockManager
 import net.horizonsend.ion.server.features.multiblock.shape.MultiblockShape
+import net.horizonsend.ion.server.features.multiblock.type.DisplayNameMultilblock
 import net.horizonsend.ion.server.features.multiblock.type.EntityMultiblock
 import net.horizonsend.ion.server.miscellaneous.utils.LegacyItemUtils
 import net.kyori.adventure.text.Component
@@ -33,7 +34,7 @@ import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.ItemStack
 import kotlin.math.roundToInt
 
-object GasPowerPlantMultiblock : Multiblock(), EntityMultiblock<GasPowerPlantMultiblock.GasPowerPlantMultiblockEntity> {
+object GasPowerPlantMultiblock : Multiblock(), EntityMultiblock<GasPowerPlantMultiblock.GasPowerPlantMultiblockEntity>, DisplayNameMultilblock {
 	override val name: String = "gaspowerplant"
 
 	override val signText: Array<Component?> = arrayOf(
@@ -45,6 +46,11 @@ object GasPowerPlantMultiblock : Multiblock(), EntityMultiblock<GasPowerPlantMul
 		null,
 		null
 	)
+
+	override val displayName: Component
+		get() = text("Gas Power Plant")
+	override val description: Component
+		get() = text("Burns a Fuel Gas and Oxidizer Gas to generate power.")
 
 	override fun MultiblockShape.buildStructure() {
 		z(+0) {
@@ -180,8 +186,8 @@ object GasPowerPlantMultiblock : Multiblock(), EntityMultiblock<GasPowerPlantMul
 
 		override val displayHandler = DisplayHandlers.newMultiblockSignOverlay(
 			this,
-			PowerEntityDisplay(this, +0.0, +0.0, +0.0, 0.45f),
-			StatusDisplay(statusManager, +0.0, -0.10, +0.0, 0.45f)
+			{ PowerEntityDisplayModule(it, this) },
+			{ StatusDisplayModule(it, statusManager) }
 		).register()
 
 		override fun tick() {
@@ -201,7 +207,7 @@ object GasPowerPlantMultiblock : Multiblock(), EntityMultiblock<GasPowerPlantMul
 			val consumed = checkCanisters(inventory, fuelItem, fuel, oxidizerItem, oxidizer) ?: return
 
 			if (powerStorage.getPower() < maxPower) {
-				tickingManager.sleep(fuelType.cooldown)
+				tickingManager.sleepForTicks(fuelType.cooldown)
 
 				inventory.holder?.burnTime = fuelType.cooldown.toShort()
 				inventory.holder?.update()
@@ -257,6 +263,7 @@ object GasPowerPlantMultiblock : Multiblock(), EntityMultiblock<GasPowerPlantMul
 		private fun clearEmpty(furnaceInventory: Inventory, itemStack: ItemStack): Boolean {
 			val discardChest = getInventory(0, 0, 6) ?: return true
 			if (!LegacyItemUtils.canFit(discardChest, EMPTY_CANISTER)) return true
+			discardChest.addItem(EMPTY_CANISTER.clone())
 
 			furnaceInventory.remove(itemStack)
 			return false

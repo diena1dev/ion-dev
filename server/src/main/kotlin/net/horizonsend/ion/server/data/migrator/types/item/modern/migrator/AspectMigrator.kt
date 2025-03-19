@@ -5,6 +5,7 @@ import io.papermc.paper.datacomponent.DataComponentTypes
 import net.horizonsend.ion.server.data.migrator.types.item.MigratorResult
 import net.horizonsend.ion.server.data.migrator.types.item.modern.aspect.ChangeIdentifierMigrator
 import net.horizonsend.ion.server.data.migrator.types.item.modern.aspect.ChangeTypeMigrator
+import net.horizonsend.ion.server.data.migrator.types.item.modern.aspect.ConsumerMigrator
 import net.horizonsend.ion.server.data.migrator.types.item.modern.aspect.CustomNameMigrator
 import net.horizonsend.ion.server.data.migrator.types.item.modern.aspect.ItemAspectMigrator
 import net.horizonsend.ion.server.data.migrator.types.item.modern.aspect.ItemComponentMigrator
@@ -13,12 +14,12 @@ import net.horizonsend.ion.server.data.migrator.types.item.modern.aspect.PullMod
 import net.horizonsend.ion.server.data.migrator.types.item.modern.aspect.SetLoreMigrator
 import net.horizonsend.ion.server.data.migrator.types.item.predicate.ItemMigratorPredicate
 import net.horizonsend.ion.server.features.custom.items.CustomItem
-import net.horizonsend.ion.server.features.custom.items.CustomItemRegistry
 import net.horizonsend.ion.server.miscellaneous.registrations.persistence.NamespacedKeys.HORIZONSEND_NAMESPACE
 import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.Component
 import org.bukkit.Material
 import org.bukkit.inventory.ItemStack
+import java.util.function.Consumer
 
 class AspectMigrator private constructor(
 	val customItem: CustomItem,
@@ -71,6 +72,9 @@ class AspectMigrator private constructor(
 
 		fun setItemMaterial(newMaterial: Material): Builder {
 			aspects.add(ChangeTypeMigrator(newMaterial))
+			val example = customItem.constructItemStack()
+
+			setDataComponent(DataComponentTypes.MAX_STACK_SIZE, example.maxStackSize)
 			return this
 		}
 
@@ -104,6 +108,11 @@ class AspectMigrator private constructor(
 			return this
 		}
 
+		fun addConsumer(consumer: Consumer<ItemStack>): Builder {
+			aspects.add(ConsumerMigrator(consumer))
+			return this
+		}
+
 		fun setModel(customModel: String): Builder {
 			return setDataComponent(DataComponentTypes.ITEM_MODEL, Key.key(HORIZONSEND_NAMESPACE, customModel))
 		}
@@ -117,7 +126,7 @@ class AspectMigrator private constructor(
 		}
 
 		fun fixModel(customItem: CustomItem): AspectMigrator {
-			return builder(CustomItemRegistry.POWER_DRILL_BASIC).pullModel(CustomItemRegistry.POWER_DRILL_BASIC).build()
+			return builder(customItem).pullModel(customItem).build()
 		}
 	}
 }

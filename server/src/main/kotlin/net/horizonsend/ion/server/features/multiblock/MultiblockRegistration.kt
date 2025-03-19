@@ -31,12 +31,9 @@ import net.horizonsend.ion.server.features.multiblock.type.farming.planter.Plant
 import net.horizonsend.ion.server.features.multiblock.type.farming.planter.PlanterMultiblockTier2
 import net.horizonsend.ion.server.features.multiblock.type.farming.planter.PlanterMultiblockTier3
 import net.horizonsend.ion.server.features.multiblock.type.fluid.CanisterVentMultiblock
-import net.horizonsend.ion.server.features.multiblock.type.fluid.ElectrolysisMultiblock
 import net.horizonsend.ion.server.features.multiblock.type.fluid.GasPowerPlantMultiblock
 import net.horizonsend.ion.server.features.multiblock.type.fluid.collector.CanisterGasCollectorMultiblock
 import net.horizonsend.ion.server.features.multiblock.type.fluid.collector.PipedGasCollectorMultiblock
-import net.horizonsend.ion.server.features.multiblock.type.fluid.storage.FluidTankMedium
-import net.horizonsend.ion.server.features.multiblock.type.fluid.storage.FluidTankSmall
 import net.horizonsend.ion.server.features.multiblock.type.industry.CentrifugeMultiblock
 import net.horizonsend.ion.server.features.multiblock.type.industry.CircuitfabMultiblock
 import net.horizonsend.ion.server.features.multiblock.type.industry.CompressorMultiblock
@@ -54,8 +51,8 @@ import net.horizonsend.ion.server.features.multiblock.type.misc.ItemSplitterMult
 import net.horizonsend.ion.server.features.multiblock.type.misc.LargeTractorBeamMultiblock
 import net.horizonsend.ion.server.features.multiblock.type.misc.MagazineMultiblock
 import net.horizonsend.ion.server.features.multiblock.type.misc.MagazineMultiblockMirrored
+import net.horizonsend.ion.server.features.multiblock.type.misc.MediumTractorBeamMultiblock
 import net.horizonsend.ion.server.features.multiblock.type.misc.MobDefender
-import net.horizonsend.ion.server.features.multiblock.type.misc.ShipFactoryMultiblock
 import net.horizonsend.ion.server.features.multiblock.type.misc.TractorBeamMultiblock
 import net.horizonsend.ion.server.features.multiblock.type.particleshield.BoxShieldMultiblock
 import net.horizonsend.ion.server.features.multiblock.type.particleshield.EventShieldMultiblock
@@ -66,6 +63,8 @@ import net.horizonsend.ion.server.features.multiblock.type.particleshield.Shield
 import net.horizonsend.ion.server.features.multiblock.type.particleshield.ShieldMultiblockClass30
 import net.horizonsend.ion.server.features.multiblock.type.particleshield.ShieldMultiblockClass65
 import net.horizonsend.ion.server.features.multiblock.type.particleshield.ShieldMultiblockClass85
+import net.horizonsend.ion.server.features.multiblock.type.power.CreativePowerSinkMultiblock
+import net.horizonsend.ion.server.features.multiblock.type.power.CreativePowerSourceMultiblock
 import net.horizonsend.ion.server.features.multiblock.type.power.charger.ChargerMultiblockTier1
 import net.horizonsend.ion.server.features.multiblock.type.power.charger.ChargerMultiblockTier2
 import net.horizonsend.ion.server.features.multiblock.type.power.charger.ChargerMultiblockTier3
@@ -88,6 +87,8 @@ import net.horizonsend.ion.server.features.multiblock.type.printer.GlassPrinterM
 import net.horizonsend.ion.server.features.multiblock.type.printer.GlassPrinterMultiblockMirrored
 import net.horizonsend.ion.server.features.multiblock.type.printer.TechnicalPrinterMultiblock
 import net.horizonsend.ion.server.features.multiblock.type.printer.TechnicalPrinterMultiblockMirrored
+import net.horizonsend.ion.server.features.multiblock.type.shipfactory.AdvancedShipFactoryMultiblock
+import net.horizonsend.ion.server.features.multiblock.type.shipfactory.ShipFactoryMultiblock
 import net.horizonsend.ion.server.features.multiblock.type.starship.LandingGearMultiblock
 import net.horizonsend.ion.server.features.multiblock.type.starship.OdometerMultiblock
 import net.horizonsend.ion.server.features.multiblock.type.starship.checklist.BargeReactorMultiBlock
@@ -126,6 +127,7 @@ import net.horizonsend.ion.server.features.multiblock.type.starship.mininglasers
 import net.horizonsend.ion.server.features.multiblock.type.starship.navigationcomputer.HorizontalNavigationComputerMultiblockAdvanced
 import net.horizonsend.ion.server.features.multiblock.type.starship.navigationcomputer.NavigationComputerMultiblockBasic
 import net.horizonsend.ion.server.features.multiblock.type.starship.navigationcomputer.VerticalNavigationComputerMultiblockAdvanced
+import net.horizonsend.ion.server.features.multiblock.type.starship.weapon.cannon.InterceptorCannonStarshipWeaponMultiblock
 import net.horizonsend.ion.server.features.multiblock.type.starship.weapon.cannon.LaserCannonStarshipWeaponMultiblock
 import net.horizonsend.ion.server.features.multiblock.type.starship.weapon.cannon.PlasmaCannonStarshipWeaponMultiblock
 import net.horizonsend.ion.server.features.multiblock.type.starship.weapon.cannon.PulseCannonStarshipWeaponMultiblock
@@ -191,6 +193,9 @@ object MultiblockRegistration : IonServerComponent() {
 		registerMultiblock(PowerBankMultiblockTier2, "NewPowerBankMultiblockTier2") //TODO testing only - remove on live
 		registerMultiblock(PowerBankMultiblockTier3, "NewPowerBankMultiblockTier3") //TODO testing only - remove on live
 		registerMultiblock(PowerCellMultiblock)
+
+		registerMultiblock(CreativePowerSourceMultiblock)
+		registerMultiblock(CreativePowerSinkMultiblock)
 
 		registerMultiblock(ChargerMultiblockTier1)
 		registerMultiblock(ChargerMultiblockTier2)
@@ -285,9 +290,9 @@ object MultiblockRegistration : IonServerComponent() {
 		registerMultiblock(CanisterVentMultiblock)
 		registerMultiblock(GasPowerPlantMultiblock)
 
-		registerMultiblock(ElectrolysisMultiblock)
-		registerMultiblock(FluidTankSmall)
-		registerMultiblock(FluidTankMedium)
+//		registerMultiblock(ElectrolysisMultiblock)
+//		registerMultiblock(FluidTankSmall)
+//		registerMultiblock(FluidTankMedium)
 //		registerMultiblock(FluidTankLarge)
 
 		// Defenses
@@ -302,6 +307,7 @@ object MultiblockRegistration : IonServerComponent() {
 		registerMultiblock(LaserCannonStarshipWeaponMultiblock)
 		registerMultiblock(PlasmaCannonStarshipWeaponMultiblock)
 		registerMultiblock(PulseCannonStarshipWeaponMultiblock)
+		registerMultiblock(InterceptorCannonStarshipWeaponMultiblock)
 		registerMultiblock(HeavyLaserStarshipWeaponMultiblock)
 		registerMultiblock(AIHeavyLaserStarshipWeaponMultiblock)
 		registerMultiblock(AIPhaserStarshipWeaponMultiblock)
@@ -378,6 +384,7 @@ object MultiblockRegistration : IonServerComponent() {
 
 		// Machine
 		registerMultiblock(ShipFactoryMultiblock)
+		registerMultiblock(AdvancedShipFactoryMultiblock)
 
 		registerMultiblock(DecomposerMultiblock)
 
@@ -389,6 +396,7 @@ object MultiblockRegistration : IonServerComponent() {
 		registerMultiblock(AirlockMultiblock)
 		registerMultiblock(ExpandableAirlock)
 		registerMultiblock(TractorBeamMultiblock)
+		registerMultiblock(MediumTractorBeamMultiblock)
 		registerMultiblock(LargeTractorBeamMultiblock)
 
 		registerMultiblock(AntiAirCannonBaseMultiblock)

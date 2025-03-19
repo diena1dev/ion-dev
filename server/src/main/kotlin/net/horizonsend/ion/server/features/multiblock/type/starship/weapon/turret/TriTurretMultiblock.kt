@@ -6,6 +6,8 @@ import net.horizonsend.ion.server.features.starship.active.ActiveStarship
 import net.horizonsend.ion.server.features.starship.subsystem.weapon.TurretWeaponSubsystem
 import net.horizonsend.ion.server.features.starship.subsystem.weapon.secondary.TriTurretWeaponSubsystem
 import net.horizonsend.ion.server.miscellaneous.utils.coordinates.Vec3i
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.Component.text
 import org.bukkit.Material.GRINDSTONE
 import org.bukkit.Material.IRON_TRAPDOOR
 import org.bukkit.block.BlockFace
@@ -17,6 +19,8 @@ sealed class TriTurretMultiblock : TurretMultiblock() {
 
 	protected abstract fun getYFactor(): Int
 
+	override val displayName: Component get() = text("Tri Turret (${if (getYFactor() == 1) "Top" else "Bottom"})")
+	override val description: Component get() = text("Rotating weapon system effective against large targets. Can be auto-targeting.")
 
 	override fun getBalancing(starship: ActiveStarship): StarshipWeapons.StarshipWeapon = starship.balancing.weapons.triTurret
 
@@ -45,7 +49,7 @@ sealed class TriTurretMultiblock : TurretMultiblock() {
 		y(getYFactor() * 3) {
 			z(-3) {
 				x(-1).anyStairs()
-				x(+0).terracottaOrDoubleslab()
+				x(+0).terracottaOrDoubleSlab()
 				x(+1).anyStairs()
 			}
 
@@ -62,25 +66,25 @@ sealed class TriTurretMultiblock : TurretMultiblock() {
 			}
 
 			z(+0) {
-				x(-3..-2) { terracottaOrDoubleslab() }
+				x(-3..-2) { terracottaOrDoubleSlab() }
 				x(-1..+1) { this.anyConcrete() }
-				x(+2..+3) { terracottaOrDoubleslab() }
+				x(+2..+3) { terracottaOrDoubleSlab() }
 			}
 
 			z(+1) {
 				x(-3).anyStairs()
-				x(-2).terracottaOrDoubleslab()
+				x(-2).terracottaOrDoubleSlab()
 				x(-1).anyConcrete()
-				x(+0).terracottaOrDoubleslab()
+				x(+0).terracottaOrDoubleSlab()
 				x(+1).anyConcrete()
-				x(+2).terracottaOrDoubleslab()
+				x(+2).terracottaOrDoubleSlab()
 				x(+3).anyStairs()
 			}
 
 			z(+2) {
 				x(-2).ironBlock()
 				x(-1).anyConcrete()
-				x(+0).terracottaOrDoubleslab()
+				x(+0).terracottaOrDoubleSlab()
 				x(+1).anyConcrete()
 				x(+2).ironBlock()
 			}
@@ -100,24 +104,24 @@ sealed class TriTurretMultiblock : TurretMultiblock() {
 			z(-2) {
 				x(-2).anySlab()
 				x(-1).anyStairs()
-				x(+0).terracottaOrDoubleslab()
+				x(+0).terracottaOrDoubleSlab()
 				x(+1).anyStairs()
 				x(+2).anySlab()
 			}
 
 			z(-1) {
-				x(-2).terracottaOrDoubleslab()
-				x(-1).terracottaOrDoubleslab()
-				x(+0).terracottaOrDoubleslab()
-				x(+1).terracottaOrDoubleslab()
-				x(+2).terracottaOrDoubleslab()
+				x(-2).terracottaOrDoubleSlab()
+				x(-1).terracottaOrDoubleSlab()
+				x(+0).terracottaOrDoubleSlab()
+				x(+1).terracottaOrDoubleSlab()
+				x(+2).terracottaOrDoubleSlab()
 			}
 
 			z(+0) {
 				x(-3).anyStairs()
 				x(-2).type(GRINDSTONE)
 				x(-1).anyStairs()
-				x(+0).terracottaOrDoubleslab()
+				x(+0).terracottaOrDoubleSlab()
 				x(+1).anyStairs()
 				x(+2).type(GRINDSTONE)
 				x(+3).anyStairs()

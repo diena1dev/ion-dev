@@ -21,7 +21,6 @@ import net.kyori.adventure.text.format.NamedTextColor.GOLD
 import net.kyori.adventure.text.format.NamedTextColor.GRAY
 import net.minecraft.core.BlockPos
 import net.minecraft.nbt.ListTag
-import net.minecraft.nbt.StringTag
 import net.minecraft.world.level.block.entity.BlockEntity
 import org.bukkit.FluidCollisionMode
 import org.bukkit.Location
@@ -106,15 +105,11 @@ object CratePlacer : CustomItem(
 			boxEntity.customName(item.itemMeta.displayName())
 			boxEntity.update()
 
-			// Add the raw nms tag for shipment id
-			val id = getShipmentItemId(item)
 			val entity = (target.state as CraftShulkerBox).tileEntity
 			val chunk = entity.location.chunk.minecraft
+
 			// Save the full compound tag
 			val base = entity.saveWithFullMetadata(player.world.minecraft.registryAccess())
-
-			//incomplete crates dont have shipment ids
-			if (id != null) base.put("shipment_oid", StringTag.valueOf(id))
 
 			val items = ListTag()
 			items.add(itemNBT)
@@ -140,7 +135,7 @@ object CratePlacer : CustomItem(
 			)
 
 			if (event.callEvent()) {
-				player.inventory.removeItem(item.asOne())
+				player.inventory.removeItemAnySlot(item.asOne())
 
 				val powerManager = getComponent(CustomComponentTypes.POWER_STORAGE)
 				powerManager.removePower(itemStack, this, powerManager.getPowerUse(itemStack, this))

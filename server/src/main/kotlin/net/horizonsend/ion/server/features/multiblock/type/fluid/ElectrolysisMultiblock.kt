@@ -5,9 +5,11 @@ import net.horizonsend.ion.common.extensions.information
 import net.horizonsend.ion.common.utils.text.ofChildren
 import net.horizonsend.ion.server.features.client.display.ClientDisplayEntities.highlightBlock
 import net.horizonsend.ion.server.features.client.display.modular.DisplayHandlers
-import net.horizonsend.ion.server.features.client.display.modular.display.PowerEntityDisplay
-import net.horizonsend.ion.server.features.client.display.modular.display.fluid.ComplexFluidDisplay
-import net.horizonsend.ion.server.features.client.display.modular.display.fluid.SimpleFluidDisplay
+import net.horizonsend.ion.server.features.client.display.modular.display.MATCH_SIGN_FONT_SIZE
+import net.horizonsend.ion.server.features.client.display.modular.display.PowerEntityDisplayModule
+import net.horizonsend.ion.server.features.client.display.modular.display.fluid.ComplexFluidDisplayModule
+import net.horizonsend.ion.server.features.client.display.modular.display.fluid.SimpleFluidDisplayModule
+import net.horizonsend.ion.server.features.client.display.modular.display.getLinePos
 import net.horizonsend.ion.server.features.multiblock.Multiblock
 import net.horizonsend.ion.server.features.multiblock.entity.MultiblockEntity
 import net.horizonsend.ion.server.features.multiblock.entity.PersistentMultiblockData
@@ -54,6 +56,7 @@ import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.persistence.PersistentDataAdapterContext
 
 object ElectrolysisMultiblock : Multiblock(), EntityMultiblock<ElectrolysisMultiblock.ElectrolysisMultiblockEntity>, InteractableMultiblock, DisplayNameMultilblock {
+	override val description: Component = text("Turns water into Hydrogen and Oxygen gas")
 	override val name: String = "ElectrolysisMultiblock"
 	override val alternativeDetectionNames: Array<String> = arrayOf("Electrolysis")
 
@@ -188,12 +191,12 @@ object ElectrolysisMultiblock : Multiblock(), EntityMultiblock<ElectrolysisMulti
 		val entity = getMultiblockEntity(sign) ?: return player.alert("NULL")
 
 		val handler = entity.displayHandler
-		player.information("Location ${handler.blockX}, ${handler.blockY}, ${handler.blockZ}")
+		player.information("Location ${handler.anchorBlockX}, ${handler.anchorBlockY}, ${handler.anchorBlockZ}")
 		player.information("Facing ${handler.facing}")
 
-		entity.displayHandler.displays.forEach { display ->
+		entity.displayHandler.displayModules.forEach { display ->
 			player.information("Display $display")
-			player.information("Offset ${display.getLocation(handler)}")
+			player.information("Location ${display.getLocation()}")
 			player.highlightBlock(display.entity.blockPosition().toVec3i(), 10L)
 		}
 
@@ -208,7 +211,7 @@ object ElectrolysisMultiblock : Multiblock(), EntityMultiblock<ElectrolysisMulti
 		z: Int,
 		world: World,
 		structureDirection: BlockFace
-	) : MultiblockEntity(manager, ElectrolysisMultiblock, x, y, z, world, structureDirection), AsyncTickingMultiblockEntity, FluidStoringEntity, PoweredMultiblockEntity, DisplayMultiblockEntity {
+	) : MultiblockEntity(manager, ElectrolysisMultiblock, world, x, y, z, structureDirection), AsyncTickingMultiblockEntity, FluidStoringEntity, PoweredMultiblockEntity, DisplayMultiblockEntity {
 		override val maxPower: Int = 100_000
 		override val multiblock = ElectrolysisMultiblock
 		override val tickingManager: TickingManager = TickingManager(interval = 4)
@@ -227,10 +230,10 @@ object ElectrolysisMultiblock : Multiblock(), EntityMultiblock<ElectrolysisMulti
 
 		override val displayHandler = DisplayHandlers.newMultiblockSignOverlay(
 			this,
-			PowerEntityDisplay(this, +0.0, +0.0, +0.0, 0.45f),
-			SimpleFluidDisplay(waterStorage, +0.0, -0.10, +0.0, 0.45f),
-			ComplexFluidDisplay(hydrogenStorage, text("Hydrogen"), +1.0, +0.0, +0.0, 0.5f),
-			ComplexFluidDisplay(oxygenStorage, text("Oxygen"), -1.0, +0.0, +0.0, 0.5f)
+			{ PowerEntityDisplayModule(it, this) },
+			{ SimpleFluidDisplayModule(it, waterStorage, +0.0, getLinePos(3), +0.0, MATCH_SIGN_FONT_SIZE) },
+			{ ComplexFluidDisplayModule(it, hydrogenStorage, text("Hydrogen"), +1.0, +0.0, +0.0, MATCH_SIGN_FONT_SIZE) },
+			{ ComplexFluidDisplayModule(it, oxygenStorage, text("Oxygen"), -1.0, +0.0, +0.0, MATCH_SIGN_FONT_SIZE) },
 		).register()
 
 		override fun tickAsync() {

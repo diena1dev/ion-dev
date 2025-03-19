@@ -6,7 +6,7 @@ plugins {
 	kotlin("plugin.serialization")
 
 	id("com.github.johnrengelman.shadow")
-	id("io.papermc.paperweight.userdev") version "2.0.0-beta.8"
+	id("io.papermc.paperweight.userdev") version "2.0.0-beta.14"
 }
 
 repositories {
@@ -38,7 +38,7 @@ dependencies {
 
 	// Other Plugins
 	compileOnly("com.github.webbukkit.dynmap:spigot:3.1") { exclude("*") /* Old Version, takes forever to download */ }
-	compileOnly("net.citizensnpcs:citizens-main:2.0.30-SNAPSHOT") { exclude("*") }
+	compileOnly("net.citizensnpcs:citizens-main:2.0.37-SNAPSHOT") { exclude("*") }
 	compileOnly("com.github.MilkBowl:VaultAPI:1.7.1")
 	compileOnly("com.discordsrv:discordsrv:1.29.0")
 	compileOnly("net.luckperms:api:5.4")
@@ -63,9 +63,9 @@ dependencies {
 	implementation("dev.vankka:mcdiscordreserializer:4.3.0")
 	implementation("org.apache.commons:commons-collections4:4.4")
 
-	implementation(platform("com.intellectualsites.bom:bom-newest:1.51"))
-	compileOnly("com.fastasyncworldedit:FastAsyncWorldEdit-Core:2.12.2")
-	compileOnly("com.fastasyncworldedit:FastAsyncWorldEdit-Bukkit:2.12.2") { isTransitive = false }
+	implementation(platform("com.intellectualsites.bom:bom-newest:1.52"))
+	compileOnly("com.fastasyncworldedit:FastAsyncWorldEdit-Core:2.12.3")
+	compileOnly("com.fastasyncworldedit:FastAsyncWorldEdit-Bukkit:2.12.3") { isTransitive = false }
 
 	compileOnly("dev.cubxity.plugins", "unifiedmetrics-api", "0.3.8")
 }

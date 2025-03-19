@@ -2,21 +2,18 @@ package net.horizonsend.ion.server.features.multiblock.type.industry
 
 import net.horizonsend.ion.server.features.multiblock.Multiblock
 import net.horizonsend.ion.server.features.multiblock.entity.PersistentMultiblockData
-import net.horizonsend.ion.server.features.multiblock.entity.type.LegacyMultiblockEntity
-import net.horizonsend.ion.server.features.multiblock.entity.type.ProgressMultiblock
-import net.horizonsend.ion.server.features.multiblock.entity.type.RecipeEntity
-import net.horizonsend.ion.server.features.multiblock.entity.type.power.PoweredMultiblockEntity
-import net.horizonsend.ion.server.features.multiblock.entity.type.power.SimplePoweredEntity
-import net.horizonsend.ion.server.features.multiblock.entity.type.ticked.TickedMultiblockEntityParent
+import net.horizonsend.ion.server.features.multiblock.entity.type.power.IndustryEntity
 import net.horizonsend.ion.server.features.multiblock.manager.MultiblockManager
 import net.horizonsend.ion.server.features.multiblock.shape.MultiblockShape
+import net.horizonsend.ion.server.features.multiblock.type.DisplayNameMultilblock
 import net.horizonsend.ion.server.features.multiblock.type.EntityMultiblock
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.Component.text
 import org.bukkit.World
 import org.bukkit.block.BlockFace
-import org.bukkit.block.Sign
 
 
-object CompressorMultiblock : Multiblock(), EntityMultiblock<CompressorMultiblock.CompressorMultiblockEntity> {
+object CompressorMultiblock : Multiblock(), EntityMultiblock<CompressorMultiblock.CompressorMultiblockEntity>, DisplayNameMultilblock {
 	override val name = "compressor"
 
 	override val signText = createSignText(
@@ -25,6 +22,9 @@ object CompressorMultiblock : Multiblock(), EntityMultiblock<CompressorMultibloc
 		line3 = null,
 		line4 = null
 	)
+
+	override val displayName: Component get() = text("Compressor")
+	override val description: Component get() = text("Applies a high compression force to materials to refine them.")
 
 	override fun MultiblockShape.buildStructure() {
 		z(+0) {
@@ -124,14 +124,6 @@ object CompressorMultiblock : Multiblock(), EntityMultiblock<CompressorMultibloc
 		y: Int,
 		z: Int,
 		world: World,
-		structureFace: BlockFace
-	) : SimplePoweredEntity(data, CompressorMultiblock, manager, x, y, z, world, structureFace, 300_000), LegacyMultiblockEntity, PoweredMultiblockEntity, RecipeEntity {
-		override val displayHandler = standardPowerDisplay(this)
-		override val progressManager: ProgressMultiblock.ProgressManager = ProgressMultiblock.ProgressManager(data)
-		override val tickingManager: TickedMultiblockEntityParent.TickingManager = TickedMultiblockEntityParent.TickingManager(20)
-
-		override fun loadFromSign(sign: Sign) {
-			migrateLegacyPower(sign)
-		}
-	}
+		structureFace: BlockFace,
+	) : IndustryEntity(data, CompressorMultiblock, manager, x, y, z, world, structureFace, 300_000)
 }

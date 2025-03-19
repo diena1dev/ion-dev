@@ -10,6 +10,7 @@ import net.horizonsend.ion.server.features.multiblock.entity.type.ticked.SyncTic
 import net.horizonsend.ion.server.features.multiblock.entity.type.ticked.TickedMultiblockEntityParent.TickingManager
 import net.horizonsend.ion.server.features.multiblock.manager.MultiblockManager
 import net.horizonsend.ion.server.features.multiblock.shape.MultiblockShape
+import net.horizonsend.ion.server.features.multiblock.type.DisplayNameMultilblock
 import net.horizonsend.ion.server.features.multiblock.type.EntityMultiblock
 import net.horizonsend.ion.server.features.multiblock.type.InteractableMultiblock
 import net.horizonsend.ion.server.features.transport.nodes.inputs.InputsData
@@ -31,7 +32,7 @@ import org.bukkit.inventory.ItemStack
 import org.bukkit.persistence.PersistentDataAdapterContext
 import org.bukkit.persistence.PersistentDataType.BOOLEAN
 
-object ItemSplitterMultiblock : Multiblock(), InteractableMultiblock, EntityMultiblock<ItemSplitterMultiblock.SplitterMultiblockEntity> {
+object ItemSplitterMultiblock : Multiblock(), InteractableMultiblock, EntityMultiblock<ItemSplitterMultiblock.SplitterMultiblockEntity>, DisplayNameMultilblock {
 	override val name: String = "splitter"
 
 	private fun formatText(text: String, vararg params: String) = template(text(text, AQUA), paramColor = YELLOW, useQuotesAroundObjects = false, *params)
@@ -45,6 +46,9 @@ object ItemSplitterMultiblock : Multiblock(), InteractableMultiblock, EntityMult
 		text(".:[Matching items]:;", NamedTextColor.GRAY),
 		RIGHT
 	)
+
+	override val displayName: Component get() = text("Item Splitter")
+	override val description: Component get() = text("Sorts items based on a whitelist/blacklist system.")
 
 	override fun MultiblockShape.buildStructure() {
 		z(+0) {
@@ -129,7 +133,7 @@ object ItemSplitterMultiblock : Multiblock(), InteractableMultiblock, EntityMult
 		world: World,
 		structureDirection: BlockFace,
 		private var isBlacklist: Boolean
-	) : MultiblockEntity(manager, ItemSplitterMultiblock, x, y, z, world, structureDirection), SyncTickingMultiblockEntity, LegacyMultiblockEntity {
+	) : MultiblockEntity(manager, ItemSplitterMultiblock, world, x, y, z, structureDirection), SyncTickingMultiblockEntity, LegacyMultiblockEntity {
 		override val tickingManager: TickingManager = TickingManager(interval = 20)
 		override val inputsData: InputsData = none()
 
@@ -137,8 +141,8 @@ object ItemSplitterMultiblock : Multiblock(), InteractableMultiblock, EntityMult
 			val filterItems = getBlacklist() ?: return
 
 			val inputInventory = getInventory(0, 1, 0) ?: return
-			val remainderInventory = getInventory(2, 1, 1) ?: return
-			val filteredInventory = getInventory(-2, 1, 1) ?: return
+			val remainderInventory = getInventory(-2, 1, 1) ?: return
+			val filteredInventory = getInventory(+2, 1, 1) ?: return
 
 			if (isBlacklist) {
 				doFilter(inputInventory, filteredInventory, remainderInventory) { it?.filterContains(filterItems) == false }
@@ -168,8 +172,8 @@ object ItemSplitterMultiblock : Multiblock(), InteractableMultiblock, EntityMult
 			sign.update()
 		}
 
-		fun getBlacklist(): List<ItemStack>? {
-			val items = getInventory(0, 1, 1) ?: return null
+		private fun getBlacklist(): List<ItemStack>? {
+			val items = getInventory(0, 1, 2) ?: return null
 			return items.storageContents.filterNotNull()
 		}
 

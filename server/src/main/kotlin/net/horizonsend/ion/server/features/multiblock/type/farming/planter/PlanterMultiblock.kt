@@ -2,8 +2,8 @@ package net.horizonsend.ion.server.features.multiblock.type.farming.planter
 
 import net.horizonsend.ion.common.utils.text.ofChildren
 import net.horizonsend.ion.server.features.client.display.modular.DisplayHandlers
-import net.horizonsend.ion.server.features.client.display.modular.display.PowerEntityDisplay
-import net.horizonsend.ion.server.features.client.display.modular.display.StatusDisplay
+import net.horizonsend.ion.server.features.client.display.modular.display.PowerEntityDisplayModule
+import net.horizonsend.ion.server.features.client.display.modular.display.StatusDisplayModule
 import net.horizonsend.ion.server.features.multiblock.Multiblock
 import net.horizonsend.ion.server.features.multiblock.entity.PersistentMultiblockData
 import net.horizonsend.ion.server.features.multiblock.entity.type.LegacyMultiblockEntity
@@ -15,9 +15,11 @@ import net.horizonsend.ion.server.features.multiblock.entity.type.ticked.SyncTic
 import net.horizonsend.ion.server.features.multiblock.entity.type.ticked.TickedMultiblockEntityParent.TickingManager
 import net.horizonsend.ion.server.features.multiblock.manager.MultiblockManager
 import net.horizonsend.ion.server.features.multiblock.shape.MultiblockShape
+import net.horizonsend.ion.server.features.multiblock.type.DisplayNameMultilblock
 import net.horizonsend.ion.server.features.multiblock.type.EntityMultiblock
 import net.horizonsend.ion.server.features.multiblock.type.farming.Crop
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.Component.space
 import net.kyori.adventure.text.Component.text
 import net.kyori.adventure.text.format.NamedTextColor.BLUE
 import net.kyori.adventure.text.format.NamedTextColor.DARK_AQUA
@@ -32,14 +34,19 @@ import org.bukkit.block.BlockFace
 import org.bukkit.block.Sign
 import org.bukkit.inventory.FurnaceInventory
 
-abstract class PlanterMultiblock(val tierMaterial: Material, val tierNumber: Int, tierColor: TextColor) : Multiblock(), EntityMultiblock<PlanterMultiblock.PlanterEntity> {
+abstract class PlanterMultiblock(val tierMaterial: Material, val tierNumber: Int, tierColor: TextColor) : Multiblock(), EntityMultiblock<PlanterMultiblock.PlanterEntity>, DisplayNameMultilblock {
 	override val name: String = "planter"
+	private val nameText = ofChildren(text("Auto ", GRAY), text("Planter", GREEN))
+	val tierText = ofChildren(text("Tier ", DARK_AQUA), text(tierNumber, tierColor))
 	override val signText: Array<Component?> = arrayOf(
-		ofChildren(text("Auto ", GRAY), text("Planter", GREEN)),
-		ofChildren(text("Tier ", DARK_AQUA), text(tierNumber, tierColor)),
+		nameText,
+		tierText,
 		null,
 		null
 	)
+
+	override val displayName: Component = ofChildren(tierText, space(), nameText)
+	override val description: Component get() = text("Plants crops on farmland. Crops will be planted opposite of the sign, up to $regionDepth blocks away.")
 
 	abstract val regionDepth: Int
 	private val powerPerCrop: Int = 10
@@ -116,18 +123,18 @@ abstract class PlanterMultiblock(val tierMaterial: Material, val tierNumber: Int
 
 		override val displayHandler = DisplayHandlers.newMultiblockSignOverlay(
 			this,
-			PowerEntityDisplay(this, +0.0, +0.0, +0.0, 0.45f),
-			StatusDisplay(statusManager, +0.0, -0.10, +0.0, 0.45f)
+			{ PowerEntityDisplayModule(it, this) },
+			{ StatusDisplayModule(it, statusManager) }
 		).register()
 
 		override fun tick() {
 			var planted = 0
 			val initialPower = powerStorage.getPower()
-			if (initialPower == 0) return sleepWithStatus(text("No Power", RED), 500)
+			if (initialPower == 0) return sleepWithStatus(text("No Power", RED), 250)
 
-			val inventory: FurnaceInventory = getInventory(0, 0, 0) as? FurnaceInventory ?: return tickingManager.sleep(800)
+			val inventory: FurnaceInventory = getInventory(0, 0, 0) as? FurnaceInventory ?: return tickingManager.sleepForTicks(800)
 
-			val seedItem = inventory.fuel ?: return sleepWithStatus(text("No Seeds", RED), 500)
+			val seedItem = inventory.fuel ?: return sleepWithStatus(text("No Seeds", RED), 250)
 			val crop = Crop.findBySeed(seedItem.type) ?: return  sleepWithStatus( text("Unknown Crop", RED), 1000)
 
 			val region = getRegionWithDimensions(-1 ,-1 ,4, 3, 1, multiblock.regionDepth)
@@ -139,7 +146,7 @@ abstract class PlanterMultiblock(val tierMaterial: Material, val tierNumber: Int
 				if (block.lightFromBlocks < 7 && block.lightFromSky < 7) continue
 
 				if ((planted + 1) * multiblock.powerPerCrop > initialPower) {
-					tickingManager.sleep(500)
+					tickingManager.sleepForTicks(500)
 					break
 				}
 

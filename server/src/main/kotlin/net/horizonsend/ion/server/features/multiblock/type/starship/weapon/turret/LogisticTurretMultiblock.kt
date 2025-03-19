@@ -8,9 +8,12 @@ import net.horizonsend.ion.server.features.starship.subsystem.weapon.TurretWeapo
 import net.horizonsend.ion.server.features.starship.subsystem.weapon.primary.LogisticTurretWeaponSubsystem
 import net.horizonsend.ion.server.features.starship.subsystem.weapon.projectile.LogisticTurretProjectile
 import net.horizonsend.ion.server.miscellaneous.utils.coordinates.Vec3i
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.Component.text
 import org.bukkit.Material.GRINDSTONE
 import org.bukkit.World
 import org.bukkit.block.BlockFace
+import org.bukkit.damage.DamageType
 import org.bukkit.util.Vector
 
 sealed class LogisticTurretMultiblock : TurretMultiblock() {
@@ -18,6 +21,9 @@ sealed class LogisticTurretMultiblock : TurretMultiblock() {
     override fun createSubsystem(starship: ActiveStarship, pos: Vec3i, face: BlockFace): TurretWeaponSubsystem {
         return LogisticTurretWeaponSubsystem(starship, pos, getFacing(pos, starship), this)
     }
+
+    override val displayName: Component get() = text("Cycle Turret (${if (getSign() == 1) "Top" else "Bottom"})")
+    override val description: Component get() = text("Rotating weapon system that heals other starships.")
 
     protected abstract fun getSign(): Int
 
@@ -29,7 +35,7 @@ sealed class LogisticTurretMultiblock : TurretMultiblock() {
         z(-1) {
             y(getSign() * 3) {
                 x(-1).anyStairs()
-                x(+0).terracottaOrDoubleslab()
+                x(+0).terracottaOrDoubleSlab()
                 x(+1).anyStairs()
             }
             y(getSign() * 4) {
@@ -41,9 +47,9 @@ sealed class LogisticTurretMultiblock : TurretMultiblock() {
                 x(+0).sponge()
             }
             y(getSign() * 3) {
-                x(-1).terracottaOrDoubleslab()
+                x(-1).terracottaOrDoubleSlab()
                 x(+0).emeraldBlock()
-                x(+1).terracottaOrDoubleslab()
+                x(+1).terracottaOrDoubleSlab()
             }
             y(getSign() * 4) {
                 x(-1).anySlab()
@@ -54,7 +60,7 @@ sealed class LogisticTurretMultiblock : TurretMultiblock() {
         z(+1) {
             y(getSign() * 3) {
                 x(-1).anyStairs()
-                x(+0).terracottaOrDoubleslab()
+                x(+0).terracottaOrDoubleSlab()
                 x(+1).anyStairs()
             }
             y(getSign() * 4) {
@@ -85,7 +91,8 @@ sealed class LogisticTurretMultiblock : TurretMultiblock() {
                 getAreaShieldDamageMultiplier(starship),
                 getSound(starship),
                 starship.balancing.weapons.logisticTurret, // Not used by anything
-                shooter
+                shooter,
+				DamageType.GENERIC
             ).fire()
         }
     }

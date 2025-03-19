@@ -2,7 +2,7 @@ package net.horizonsend.ion.server.features.multiblock.entity.type.power
 
 import net.horizonsend.ion.server.features.client.display.modular.DisplayHandlers
 import net.horizonsend.ion.server.features.client.display.modular.TextDisplayHandler
-import net.horizonsend.ion.server.features.client.display.modular.display.PowerEntityDisplay
+import net.horizonsend.ion.server.features.client.display.modular.display.PowerEntityDisplayModule
 import net.horizonsend.ion.server.features.multiblock.Multiblock
 import net.horizonsend.ion.server.features.multiblock.entity.MultiblockEntity
 import net.horizonsend.ion.server.features.multiblock.entity.PersistentMultiblockData
@@ -25,7 +25,7 @@ abstract class SimplePoweredEntity(
 	world: World,
 	structureDirection: BlockFace,
 	final override val maxPower: Int
-) : MultiblockEntity(manager, multiblock, x, y, z, world, structureDirection), PoweredMultiblockEntity, DisplayMultiblockEntity {
+) : MultiblockEntity(manager, multiblock, world, x, y, z, structureDirection), PoweredMultiblockEntity, DisplayMultiblockEntity {
 	@Suppress("LeakingThis") // Only a reference is needed, max power is provided in the constructor
 	final override val powerStorage: PowerStorage = PowerStorage(
 		this,
@@ -39,10 +39,11 @@ abstract class SimplePoweredEntity(
 
 	protected fun standardPowerDisplay(entity: SimplePoweredEntity): TextDisplayHandler = DisplayHandlers.newMultiblockSignOverlay(
 		entity,
-		PowerEntityDisplay(entity, +0.0, +0.0, +0.0, 0.5f)
-	).register()
+		{ PowerEntityDisplayModule(it, entity) }
+	)
 
 	override val inputsData: InputsData = InputsData.Builder(this)
 		.addPowerInput(0, -1, 0)
+		.registerSignInputs()
 		.build()
 }

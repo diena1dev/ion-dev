@@ -2,21 +2,18 @@ package net.horizonsend.ion.server.features.multiblock.type.ammo
 
 import net.horizonsend.ion.server.features.multiblock.Multiblock
 import net.horizonsend.ion.server.features.multiblock.entity.PersistentMultiblockData
-import net.horizonsend.ion.server.features.multiblock.entity.type.LegacyMultiblockEntity
-import net.horizonsend.ion.server.features.multiblock.entity.type.ProgressMultiblock
-import net.horizonsend.ion.server.features.multiblock.entity.type.RecipeEntity
-import net.horizonsend.ion.server.features.multiblock.entity.type.power.PoweredMultiblockEntity
-import net.horizonsend.ion.server.features.multiblock.entity.type.power.SimplePoweredEntity
-import net.horizonsend.ion.server.features.multiblock.entity.type.ticked.TickedMultiblockEntityParent
+import net.horizonsend.ion.server.features.multiblock.entity.type.power.IndustryEntity
 import net.horizonsend.ion.server.features.multiblock.manager.MultiblockManager
 import net.horizonsend.ion.server.features.multiblock.shape.MultiblockShape
+import net.horizonsend.ion.server.features.multiblock.type.DisplayNameMultilblock
 import net.horizonsend.ion.server.features.multiblock.type.EntityMultiblock
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.Component.text
 import org.bukkit.Material
 import org.bukkit.World
 import org.bukkit.block.BlockFace
-import org.bukkit.block.Sign
 
-object AmmoLoaderMultiblock	: Multiblock(), EntityMultiblock<AmmoLoaderMultiblock.AmmoLoaderMultiblockEntity> {
+object AmmoLoaderMultiblock	: Multiblock(), EntityMultiblock<AmmoLoaderMultiblock.AmmoLoaderMultiblockEntity>, DisplayNameMultilblock {
 	override fun MultiblockShape.buildStructure() {
 		z(+0) {
 			y(-1) {
@@ -137,6 +134,9 @@ object AmmoLoaderMultiblock	: Multiblock(), EntityMultiblock<AmmoLoaderMultibloc
 			line4 = null
 	)
 
+	override val displayName: Component get() = text("Ammo Loader")
+	override val description: Component get() = text("Activates heavy starship ammunition.")
+
 	override fun createEntity(manager: MultiblockManager, data: PersistentMultiblockData, world: World, x: Int, y: Int, z: Int, structureDirection: BlockFace): AmmoLoaderMultiblockEntity {
 		return AmmoLoaderMultiblockEntity(data, manager, x, y, z, world, structureDirection)
 	}
@@ -149,13 +149,5 @@ object AmmoLoaderMultiblock	: Multiblock(), EntityMultiblock<AmmoLoaderMultibloc
 		z: Int,
 		world: World,
 		structureFace: BlockFace
-	) : SimplePoweredEntity(data, AmmoLoaderMultiblock, manager, x, y, z, world, structureFace, 300_000), LegacyMultiblockEntity, PoweredMultiblockEntity, RecipeEntity {
-		override val displayHandler = standardPowerDisplay(this)
-		override val progressManager: ProgressMultiblock.ProgressManager = ProgressMultiblock.ProgressManager(data)
-		override val tickingManager: TickedMultiblockEntityParent.TickingManager = TickedMultiblockEntityParent.TickingManager(20)
-
-		override fun loadFromSign(sign: Sign) {
-			migrateLegacyPower(sign)
-		}
-	}
+	) : IndustryEntity(data, AmmoLoaderMultiblock, manager, x, y, z, world, structureFace, 300_000)
 }

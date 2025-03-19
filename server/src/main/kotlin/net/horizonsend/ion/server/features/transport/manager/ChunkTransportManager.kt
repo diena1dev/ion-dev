@@ -1,25 +1,45 @@
 package net.horizonsend.ion.server.features.transport.manager
 
 import net.horizonsend.ion.server.features.transport.NewTransport
+import net.horizonsend.ion.server.features.transport.filters.manager.ChunkFilterManager
+import net.horizonsend.ion.server.features.transport.filters.manager.FilterManager
 import net.horizonsend.ion.server.features.transport.manager.extractors.ChunkExtractorManager
 import net.horizonsend.ion.server.features.transport.manager.holders.ChunkCacheHolder
-import net.horizonsend.ion.server.features.transport.nodes.cache.FluidTransportCache
+import net.horizonsend.ion.server.features.transport.nodes.cache.ItemTransportCache
 import net.horizonsend.ion.server.features.transport.nodes.cache.PowerTransportCache
-import net.horizonsend.ion.server.features.transport.nodes.cache.solarpanel.SolarPanelCache
+import net.horizonsend.ion.server.features.transport.nodes.cache.SolarPanelCache
 import net.horizonsend.ion.server.features.transport.nodes.inputs.InputManager
 import net.horizonsend.ion.server.features.world.IonWorld.Companion.ion
 import net.horizonsend.ion.server.features.world.chunk.IonChunk
 import net.horizonsend.ion.server.miscellaneous.utils.coordinates.BlockKey
 import net.horizonsend.ion.server.miscellaneous.utils.coordinates.toBlockKey
-import org.bukkit.block.Block
-import org.bukkit.block.data.BlockData
+import org.bukkit.World
 
-class ChunkTransportManager(val chunk: IonChunk) : TransportManager() {
+class ChunkTransportManager(val chunk: IonChunk) : TransportManager<ChunkCacheHolder<*>>() {
 	override val extractorManager: ChunkExtractorManager = ChunkExtractorManager(this)
+	override val filterManager: FilterManager = ChunkFilterManager(this)
 
 	override val powerNodeManager = ChunkCacheHolder(this) { PowerTransportCache(it) }
 	override val solarPanelManager = ChunkCacheHolder(this) { SolarPanelCache(it) }
-	override val fluidNodeManager = ChunkCacheHolder(this) { FluidTransportCache(it) }
+	override val itemPipeManager = ChunkCacheHolder(this) { ItemTransportCache(it) }
+//	override val fluidNodeManager = ChunkCacheHolder(this) { FluidTransportCache(it) }
+
+	override val cacheHolders: Array<ChunkCacheHolder<*>> = arrayOf(
+		powerNodeManager,
+		solarPanelManager,
+		itemPipeManager,
+//		fluidNodeManager
+	)
+
+	override val tickedHolders: Array<ChunkCacheHolder<*>> = arrayOf(
+		powerNodeManager,
+		itemPipeManager,
+//		fluidNodeManager
+	)
+
+	override fun getWorld(): World {
+		return chunk.world
+	}
 
 	override fun getInputProvider(): InputManager {
 		return chunk.world.ion.inputManager
@@ -30,16 +50,12 @@ class ChunkTransportManager(val chunk: IonChunk) : TransportManager() {
 	}
 
 	fun setup() {
-		powerNodeManager.handleLoad()
-		solarPanelManager.handleLoad()
-		fluidNodeManager.handleLoad()
+		cacheHolders.forEach { it.handleLoad() }
 		NewTransport.registerTransportManager(this)
 	}
 
 	fun onUnload() {
-		powerNodeManager.handleUnload()
-		solarPanelManager.handleUnload()
-		fluidNodeManager.handleUnload()
+		cacheHolders.forEach { it.handleUnload() }
 		NewTransport.removeTransportManager(this)
 	}
 
@@ -48,36 +64,14 @@ class ChunkTransportManager(val chunk: IonChunk) : TransportManager() {
 	}
 
 	fun invalidateCache(key: BlockKey) {
-		powerNodeManager.cache.invalidate(key)
-		solarPanelManager.cache.invalidate(key)
-		fluidNodeManager.cache.invalidate(key)
+		cacheHolders.forEach { it.cache.invalidate(key) }
 	}
 
-	fun processBlockRemoval(key: BlockKey) {
-		powerNodeManager.cache.invalidate(key)
-		solarPanelManager.cache.invalidate(key)
-		fluidNodeManager.cache.invalidate(key)
-//		pipeGrid.processBlockRemoval(key)
+	fun invalidatePathing(x: Int, y: Int, z: Int) {
+		invalidatePathing(toBlockKey(x, y, z))
 	}
 
-	fun processBlockChange(block: Block) {
-		powerNodeManager.cache.invalidate(toBlockKey(block.x, block.y, block.z))
-		solarPanelManager.cache.invalidate(toBlockKey(block.x, block.y, block.z))
-		fluidNodeManager.cache.invalidate(toBlockKey(block.x, block.y, block.z))
-//		pipeGrid.processBlockAddition(key, new)
-	}
-
-	fun processBlockChange(position: BlockKey, data: BlockData) {
-		powerNodeManager.cache.invalidate(position)
-		solarPanelManager.cache.invalidate(position)
-		fluidNodeManager.cache.invalidate(position)
-//		pipeGrid.processBlockAddition(key, new)
-	}
-
-	fun refreshBlock(position: BlockKey) {
-		powerNodeManager.cache.invalidate(position)
-		solarPanelManager.cache.invalidate(position)
-		fluidNodeManager.cache.invalidate(position)
-//		pipeGrid.processBlockAddition(key, new)
+	fun invalidatePathing(key: BlockKey) {
+		cacheHolders.forEach { it.cache.invalidateSurroundingPaths(key) }
 	}
 }

@@ -44,11 +44,14 @@ import org.bukkit.event.block.BlockBreakEvent
 import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.InventoryHolder
+import org.bukkit.inventory.ItemStack
 import java.util.EnumSet
 import java.util.UUID
 import kotlin.math.max
 
-abstract class DrillMultiblock(tierText: String, val tierMaterial: Material) : Multiblock(), EntityMultiblock<DrillMultiblock.DrillMultiblockEntity>, InteractableMultiblock, DisplayNameMultilblock {
+abstract class DrillMultiblock(val tierText: String, val tierMaterial: Material) : Multiblock(), EntityMultiblock<DrillMultiblock.DrillMultiblockEntity>, InteractableMultiblock, DisplayNameMultilblock {
+	override val description: Component = text("Drills blocks in a ${javaClass.simpleName.substringBefore("Mirrored").substringAfter("DrillMultiblockTier").toInt() + 2} block radius.")
+
 	abstract val radius: Int
 	abstract val coolDown: Int
 	abstract val mirrored: Boolean
@@ -63,7 +66,7 @@ abstract class DrillMultiblock(tierText: String, val tierMaterial: Material) : M
 		line4 = null
 	)
 
-	override val displayName: Component = ofChildren(legacyAmpersand.deserialize(tierText), text(" Drill"))
+	override val displayName: Component get() = ofChildren(legacyAmpersand.deserialize(tierText), text(" Drill"), if (mirrored) text(" (Mirrored)") else empty())
 
 	override fun onSignInteract(sign: Sign, player: Player, event: PlayerInteractEvent) {
 		if (event.action != Action.RIGHT_CLICK_BLOCK) return
@@ -145,6 +148,11 @@ abstract class DrillMultiblock(tierText: String, val tierMaterial: Material) : M
 				return
 			}
 
+			if (!isIntact(false)) {
+				disable()
+				return
+			}
+
 			drillCount[player.uniqueId] = drillCount.getOrDefault(player.uniqueId, 0) + 1
 			val drills = lastDrillCount.getOrDefault(player.uniqueId, 1)
 
@@ -154,11 +162,11 @@ abstract class DrillMultiblock(tierText: String, val tierMaterial: Material) : M
 			val power = powerStorage.getPower()
 			if (power == 0) {
 				disable()
-				return player.alertSubtitle("Your drill at $vec3i ran out of power! It was disabled.")
+				return player.alertSubtitle("Your drill at $globalVec3i ran out of power! It was disabled.")
 			}
 
 			val inSpace = world.ion.hasFlag(WorldFlag.SPACE_WORLD)
-			if (inSpace) tickingManager.sleep(15)
+			if (inSpace) tickingManager.sleepForTicks(15)
 
 			val toDestroy = getBlocksToDestroy()
 
@@ -170,7 +178,7 @@ abstract class DrillMultiblock(tierText: String, val tierMaterial: Material) : M
 			val broken = breakBlocks(
 				maxBroken,
 				toDestroy,
-				getInventory(-1, 0, 0) ?: return run {
+				getInventory(if (multiblock.mirrored) +1 else -1, 0, 0) ?: return run {
 					player.userError("Drill output inventory destroyed")
 					disable()
 				},
@@ -221,8 +229,8 @@ abstract class DrillMultiblock(tierText: String, val tierMaterial: Material) : M
 		}
 
 		private fun getBlocksToDestroy(): MutableList<Block> {
-			val toDestroy = getSquareRegion(4, 0, 0, multiblock.radius, 1) {
-				it.type == Material.AIR || it.type == Material.BEDROCK
+			val toDestroy = getSquareRegion(offsetRight = 0, offsetUp = 0, offsetForward = 4, radius = multiblock.radius, depth = 1) {
+				it.type.isAir || isBlacklisted(it)
 			}
 
 			val origin = getBlockRelative(0, 0, 4)
@@ -281,6 +289,7 @@ abstract class DrillMultiblock(tierText: String, val tierMaterial: Material) : M
 				var drops = customBlock?.drops?.getDrops(null, false) ?: if (block.type == Material.SNOW_BLOCK) listOf() else block.drops
 
 				if (block.type.isShulkerBox) drops = listOf()
+				if (block.type == Material.END_PORTAL_FRAME) drops = listOf(ItemStack(Material.END_PORTAL_FRAME))
 
 				if (!canBuild(block)) {
 					continue
@@ -303,6 +312,7 @@ abstract class DrillMultiblock(tierText: String, val tierMaterial: Material) : M
 					break
 				}
 			}
+
 			return broken
 		}
 	}

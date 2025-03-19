@@ -8,32 +8,36 @@ import net.horizonsend.ion.server.features.custom.items.component.CustomComponen
 import net.horizonsend.ion.server.features.custom.items.component.PowerStorage
 import net.horizonsend.ion.server.features.multiblock.Multiblock
 import net.horizonsend.ion.server.features.multiblock.entity.PersistentMultiblockData
+import net.horizonsend.ion.server.features.multiblock.entity.type.FurnaceBasedMultiblockEntity
 import net.horizonsend.ion.server.features.multiblock.entity.type.LegacyMultiblockEntity
+import net.horizonsend.ion.server.features.multiblock.entity.type.StatusMultiblockEntity
 import net.horizonsend.ion.server.features.multiblock.entity.type.power.PoweredMultiblockEntity
 import net.horizonsend.ion.server.features.multiblock.entity.type.power.SimplePoweredEntity
+import net.horizonsend.ion.server.features.multiblock.entity.type.ticked.StatusTickedMultiblockEntity
+import net.horizonsend.ion.server.features.multiblock.entity.type.ticked.SyncTickingMultiblockEntity
+import net.horizonsend.ion.server.features.multiblock.entity.type.ticked.TickedMultiblockEntityParent
 import net.horizonsend.ion.server.features.multiblock.manager.MultiblockManager
 import net.horizonsend.ion.server.features.multiblock.shape.MultiblockShape
 import net.horizonsend.ion.server.features.multiblock.type.DisplayNameMultilblock
 import net.horizonsend.ion.server.features.multiblock.type.EntityMultiblock
-import net.horizonsend.ion.server.features.multiblock.type.FurnaceMultiblock
 import net.horizonsend.ion.server.features.multiblock.util.PrepackagedPreset.pane
 import net.horizonsend.ion.server.miscellaneous.utils.coordinates.RelativeFace
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.Component.text
 import org.bukkit.Material
 import org.bukkit.World
 import org.bukkit.block.BlockFace
-import org.bukkit.block.Furnace
 import org.bukkit.block.Sign
-import org.bukkit.event.inventory.FurnaceBurnEvent
 import org.bukkit.inventory.FurnaceInventory
 import org.bukkit.inventory.ItemStack
 
-abstract class ChargerMultiblock(val tierText: String) : Multiblock(), EntityMultiblock<ChargerMultiblock.ChargerEntity>, FurnaceMultiblock, DisplayNameMultilblock {
+abstract class ChargerMultiblock(val tierText: String) : Multiblock(), EntityMultiblock<ChargerMultiblock.ChargerEntity>, DisplayNameMultilblock {
+	override val description: Component = text("Charges powered items.")
 	protected abstract val tierMaterial: Material
 
 	protected abstract val powerPerSecond: Int
 
-	override val displayName: Component = ofChildren(legacyAmpersand.deserialize(tierText), Component.text(" Item Charger"))
+	override val displayName: Component = ofChildren(legacyAmpersand.deserialize(tierText), text(" Item Charger"))
 
 	abstract val maxPower: Int
 
@@ -76,16 +80,6 @@ abstract class ChargerMultiblock(val tierText: String) : Multiblock(), EntityMul
 		line4 = tierText
 	)
 
-	override fun onFurnaceTick(
-		event: FurnaceBurnEvent,
-		furnace: Furnace,
-		sign: Sign
-	) {
-		val entity = getMultiblockEntity(sign) ?: return
-
-		entity.handleCharging(event, furnace)
-	}
-
 	override fun createEntity(manager: MultiblockManager, data: PersistentMultiblockData, world: World, x: Int, y: Int, z: Int, structureDirection: BlockFace): ChargerEntity {
 		return ChargerEntity(
 			data,
@@ -108,33 +102,51 @@ abstract class ChargerMultiblock(val tierText: String) : Multiblock(), EntityMul
 		z: Int,
 		world: World,
 		signDirection: BlockFace,
-	) : SimplePoweredEntity(data, multiblock, manager, x, y, z, world, signDirection, multiblock.maxPower), PoweredMultiblockEntity, LegacyMultiblockEntity {
+	) : SimplePoweredEntity(data, multiblock, manager, x, y, z, world, signDirection, multiblock.maxPower), PoweredMultiblockEntity, LegacyMultiblockEntity, StatusTickedMultiblockEntity, SyncTickingMultiblockEntity, FurnaceBasedMultiblockEntity {
+		override val tickingManager: TickedMultiblockEntityParent.TickingManager = TickedMultiblockEntityParent.TickingManager(20)
+		override val statusManager: StatusMultiblockEntity.StatusManager = StatusMultiblockEntity.StatusManager()
 		override val displayHandler = standardPowerDisplay(this)
 
-		fun handleCharging(event: FurnaceBurnEvent, furnace: Furnace) {
+		override fun tick() {
+			val furnaceInventory = getFurnaceInventory() ?: return
+
 			val availablePower = powerStorage.getPower()
 			if (availablePower == 0) return
 
-			val item = event.fuel
-
+			val item = getItem(furnaceInventory) ?: return
 			val custom = item.customItem ?: return
-			if (custom.hasComponent(CustomComponentTypes.POWER_STORAGE))
-				handleModern(item, custom, custom.getComponent(CustomComponentTypes.POWER_STORAGE), event, furnace, furnace.inventory, powerStorage.getPower())
+			if (!custom.hasComponent(CustomComponentTypes.POWER_STORAGE)) return
+
+			handleModern(
+				item,
+				custom,
+				custom.getComponent(CustomComponentTypes.POWER_STORAGE),
+				furnaceInventory,
+				availablePower
+			)
 		}
 
-		fun handleModern(
+		fun getItem(furnaceInventory: FurnaceInventory): ItemStack? {
+			return furnaceInventory.smelting?.takeIf { fuelItem ->
+				val custom = fuelItem.customItem ?: return@takeIf false
+				custom.hasComponent(CustomComponentTypes.POWER_STORAGE)
+			} ?: furnaceInventory.fuel?.takeIf { fuelItem ->
+				val custom = fuelItem.customItem ?: return@takeIf false
+				custom.hasComponent(CustomComponentTypes.POWER_STORAGE)
+			}
+		}
+
+		private fun handleModern(
 			item: ItemStack,
 			customItem: CustomItem,
-			powerManager: PowerStorage,
-			event: FurnaceBurnEvent,
-			furnace: Furnace,
+			itemPowerStorage: PowerStorage,
 			inventory: FurnaceInventory,
 			power: Int
 		) {
-			if (powerManager.getMaxPower(customItem, item) == powerManager.getPower(item)) {
+			if (itemPowerStorage.getMaxPower(customItem, item) == itemPowerStorage.getPower(item)) {
 				val result = inventory.result
 				if (result != null && result.type != Material.AIR) return
-				inventory.result = event.fuel
+				inventory.result = inventory.fuel
 				inventory.fuel = null
 				return
 			}
@@ -144,15 +156,12 @@ abstract class ChargerMultiblock(val tierText: String) : Multiblock(), EntityMul
 
 			if (item.amount * multiplier > power) return
 
-			powerManager.addPower(item, customItem, multiplier)
+			itemPowerStorage.addPower(item, customItem, multiplier)
 
 			powerStorage.setPower(power - multiplier * item.amount)
 
-			furnace.cookTime = 20.toShort()
-
-			event.isCancelled = false
-			event.isBurning = false
-			event.burnTime = 20
+			tickingManager.sleepForTicks(20)
+			setBurningForTicks(20)
 		}
 
 		override fun loadFromSign(sign: Sign) {

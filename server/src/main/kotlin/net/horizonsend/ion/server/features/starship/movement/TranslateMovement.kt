@@ -9,12 +9,15 @@ import net.horizonsend.ion.server.miscellaneous.utils.coordinates.getX
 import net.horizonsend.ion.server.miscellaneous.utils.coordinates.getY
 import net.horizonsend.ion.server.miscellaneous.utils.coordinates.getZ
 import net.horizonsend.ion.server.miscellaneous.utils.coordinates.toBlockKey
+import net.horizonsend.ion.server.miscellaneous.utils.minecraft
+import net.minecraft.world.entity.Relative
 import net.minecraft.world.level.block.state.BlockState
 import org.bukkit.Chunk
 import org.bukkit.Location
 import org.bukkit.World
 import org.bukkit.block.BlockFace
 import org.bukkit.entity.Entity
+import org.bukkit.entity.Player
 import org.bukkit.event.player.PlayerTeleportEvent
 import org.bukkit.util.Vector
 import java.util.concurrent.CompletableFuture
@@ -109,11 +112,45 @@ class TranslateMovement(starship: ActiveStarship, val dx: Int, val dy: Int, val 
 			location.world = newWorld
 		}
 
+		if (passenger is Player) {
+			val yaw = if (newWorld != null) passenger.yaw else 0f
+			val pitch = if (newWorld != null) passenger.pitch else 0f
+
+			// If changing worlds don't need to worry about jitter
+			if (newWorld != null) {
+				passenger.teleport(
+					location,
+					PlayerTeleportEvent.TeleportCause.PLUGIN,
+					*TeleportFlag.Relative.entries.toTypedArray(),
+					TeleportFlag.EntityState.RETAIN_OPEN_INVENTORY,
+					TeleportFlag.EntityState.RETAIN_VEHICLE
+				)
+
+				return
+			}
+
+			// Jitter fix
+			passenger.minecraft.teleportTo(
+				location.world.minecraft,
+				location.x,
+				location.y,
+				location.z,
+				setOf(Relative.X_ROT, Relative.Y_ROT, Relative.DELTA_X, Relative.DELTA_Y, Relative.DELTA_Z),
+				yaw,
+				pitch,
+				true,
+				PlayerTeleportEvent.TeleportCause.PLUGIN
+			)
+
+			return
+		}
+
         passenger.teleport(
             location,
             PlayerTeleportEvent.TeleportCause.PLUGIN,
-            *TeleportFlag.Relative.values(),
-            TeleportFlag.EntityState.RETAIN_OPEN_INVENTORY
+            *TeleportFlag.Relative.entries.toTypedArray(),
+            TeleportFlag.EntityState.RETAIN_OPEN_INVENTORY,
+			TeleportFlag.EntityState.RETAIN_VEHICLE
         )
 	}
 

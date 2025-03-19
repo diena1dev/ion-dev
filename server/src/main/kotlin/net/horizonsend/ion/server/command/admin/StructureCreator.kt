@@ -6,14 +6,13 @@ import co.aikar.commands.annotation.Default
 import net.horizonsend.ion.common.extensions.information
 import net.horizonsend.ion.server.command.SLCommand
 import net.horizonsend.ion.server.features.custom.blocks.CustomBlocks
-import net.horizonsend.ion.server.features.transport.manager.extractors.ExtractorManager.Companion.EXTRACTOR_TYPE
-import net.horizonsend.ion.server.features.transport.old.Wires
-import net.horizonsend.ion.server.features.transport.old.pipe.Pipes
+import net.horizonsend.ion.server.features.transport.manager.extractors.ExtractorManager.Companion.STANDARD_EXTRACTOR_TYPE
 import net.horizonsend.ion.server.miscellaneous.utils.coordinates.RelativeFace
 import net.horizonsend.ion.server.miscellaneous.utils.coordinates.Vec3i
 import net.horizonsend.ion.server.miscellaneous.utils.isConcrete
 import net.horizonsend.ion.server.miscellaneous.utils.isGlass
 import net.horizonsend.ion.server.miscellaneous.utils.isGlassPane
+import net.horizonsend.ion.server.miscellaneous.utils.isPipedInventory
 import net.horizonsend.ion.server.miscellaneous.utils.isSlab
 import net.horizonsend.ion.server.miscellaneous.utils.isStairs
 import net.horizonsend.ion.server.miscellaneous.utils.isTerracotta
@@ -153,8 +152,8 @@ object StructureCreator : SLCommand() {
 			data.material == Material.LAPIS_BLOCK -> ".lapisBlock()"
 
 			data.material == Material.FLETCHING_TABLE -> ".fluidInput()"
-			data.material == Wires.INPUT_COMPUTER_BLOCK -> ".powerInput()"
-			data.material == EXTRACTOR_TYPE -> ".extractor()"
+			data.material == Material.NOTE_BLOCK -> ".powerInput()"
+			data.material == STANDARD_EXTRACTOR_TYPE -> ".extractor()"
 			data.material == Material.HOPPER -> ".hopper()"
 			data.material == Material.DISPENSER -> ".dispenser()"
 
@@ -193,7 +192,7 @@ object StructureCreator : SLCommand() {
 			data.material == Material.MAGMA_BLOCK -> ".thrusterBlock()"
 			data.material == Material.SEA_LANTERN -> ".thrusterBlock()"
 
-			Pipes.isPipedInventory(data.material) -> ".anyPipedInventory()"
+			data.material.isPipedInventory -> ".anyPipedInventory()"
 
 			else -> ".type(Material.${data.material.name})"
 		}

@@ -2,21 +2,18 @@ package net.horizonsend.ion.server.features.multiblock.type.ammo
 
 import net.horizonsend.ion.server.features.multiblock.Multiblock
 import net.horizonsend.ion.server.features.multiblock.entity.PersistentMultiblockData
-import net.horizonsend.ion.server.features.multiblock.entity.type.LegacyMultiblockEntity
-import net.horizonsend.ion.server.features.multiblock.entity.type.ProgressMultiblock.ProgressManager
-import net.horizonsend.ion.server.features.multiblock.entity.type.RecipeEntity
-import net.horizonsend.ion.server.features.multiblock.entity.type.power.PoweredMultiblockEntity
-import net.horizonsend.ion.server.features.multiblock.entity.type.power.SimplePoweredEntity
-import net.horizonsend.ion.server.features.multiblock.entity.type.ticked.TickedMultiblockEntityParent.TickingManager
+import net.horizonsend.ion.server.features.multiblock.entity.type.power.IndustryEntity
 import net.horizonsend.ion.server.features.multiblock.manager.MultiblockManager
 import net.horizonsend.ion.server.features.multiblock.shape.MultiblockShape
+import net.horizonsend.ion.server.features.multiblock.type.DisplayNameMultilblock
 import net.horizonsend.ion.server.features.multiblock.type.EntityMultiblock
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.Component.text
 import org.bukkit.Material
 import org.bukkit.World
 import org.bukkit.block.BlockFace
-import org.bukkit.block.Sign
 
-object MissileLoaderMultiblock : Multiblock(), EntityMultiblock<MissileLoaderMultiblock.MissileLoaderMultiblockEntity> {
+object MissileLoaderMultiblock : Multiblock(), EntityMultiblock<MissileLoaderMultiblock.MissileLoaderMultiblockEntity>, DisplayNameMultilblock {
     override fun MultiblockShape.buildStructure() {
         z(+0) {
             y(-1) {
@@ -139,6 +136,9 @@ object MissileLoaderMultiblock : Multiblock(), EntityMultiblock<MissileLoaderMul
         line4 = null
     )
 
+    override val displayName: Component get() = text("Missile Loader")
+    override val description: Component get() = text("Secures warheads and arms missile projectiles.")
+
 	override fun createEntity(manager: MultiblockManager, data: PersistentMultiblockData, world: World, x: Int, y: Int, z: Int, structureDirection: BlockFace): MissileLoaderMultiblockEntity {
 		return MissileLoaderMultiblockEntity(data, manager, x, y, z, world, structureDirection)
 	}
@@ -151,13 +151,5 @@ object MissileLoaderMultiblock : Multiblock(), EntityMultiblock<MissileLoaderMul
 		z: Int,
 		world: World,
 		structureFace: BlockFace
-	) : SimplePoweredEntity(data, MissileLoaderMultiblock, manager, x, y, z, world, structureFace, 250_000), LegacyMultiblockEntity, PoweredMultiblockEntity, RecipeEntity {
-		override val displayHandler = standardPowerDisplay(this)
-		override val progressManager: ProgressManager = ProgressManager(data)
-		override val tickingManager: TickingManager = TickingManager(20)
-
-		override fun loadFromSign(sign: Sign) {
-			migrateLegacyPower(sign)
-		}
-	}
+	) : IndustryEntity(data, MissileLoaderMultiblock, manager, x, y, z, world, structureFace, 250_000)
 }

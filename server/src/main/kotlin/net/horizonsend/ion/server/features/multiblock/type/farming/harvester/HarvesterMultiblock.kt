@@ -2,8 +2,8 @@ package net.horizonsend.ion.server.features.multiblock.type.farming.harvester
 
 import net.horizonsend.ion.common.utils.text.ofChildren
 import net.horizonsend.ion.server.features.client.display.modular.DisplayHandlers
-import net.horizonsend.ion.server.features.client.display.modular.display.PowerEntityDisplay
-import net.horizonsend.ion.server.features.client.display.modular.display.StatusDisplay
+import net.horizonsend.ion.server.features.client.display.modular.display.PowerEntityDisplayModule
+import net.horizonsend.ion.server.features.client.display.modular.display.StatusDisplayModule
 import net.horizonsend.ion.server.features.multiblock.Multiblock
 import net.horizonsend.ion.server.features.multiblock.entity.PersistentMultiblockData
 import net.horizonsend.ion.server.features.multiblock.entity.type.LegacyMultiblockEntity
@@ -14,10 +14,12 @@ import net.horizonsend.ion.server.features.multiblock.entity.type.ticked.SyncTic
 import net.horizonsend.ion.server.features.multiblock.entity.type.ticked.TickedMultiblockEntityParent.TickingManager
 import net.horizonsend.ion.server.features.multiblock.manager.MultiblockManager
 import net.horizonsend.ion.server.features.multiblock.shape.MultiblockShape
+import net.horizonsend.ion.server.features.multiblock.type.DisplayNameMultilblock
 import net.horizonsend.ion.server.features.multiblock.type.EntityMultiblock
 import net.horizonsend.ion.server.features.multiblock.type.farming.Crop
 import net.horizonsend.ion.server.miscellaneous.utils.LegacyItemUtils
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.Component.space
 import net.kyori.adventure.text.Component.text
 import net.kyori.adventure.text.format.NamedTextColor.BLUE
 import net.kyori.adventure.text.format.NamedTextColor.DARK_AQUA
@@ -32,14 +34,19 @@ import org.bukkit.block.BlockFace
 import org.bukkit.block.Sign
 import org.bukkit.block.data.Ageable
 
-abstract class HarvesterMultiblock(val tierMaterial: Material, val tierNumber: Int, tierColor: TextColor) : Multiblock(), EntityMultiblock<HarvesterMultiblock.HarvesterEntity> {
+abstract class HarvesterMultiblock(val tierMaterial: Material, val tierNumber: Int, tierColor: TextColor) : Multiblock(), EntityMultiblock<HarvesterMultiblock.HarvesterEntity>, DisplayNameMultilblock {
 	override val name: String = "harvester"
+	val nameText = ofChildren(text("Auto ", GRAY), text("Harvester", GREEN))
+	val tierText = ofChildren(text("Tier ", DARK_AQUA), text(tierNumber, tierColor))
 	override val signText: Array<Component?> = arrayOf(
-		ofChildren(text("Auto ", GRAY), text("Harvester", GREEN)),
-		ofChildren(text("Tier ", DARK_AQUA), text(tierNumber, tierColor)),
+		nameText,
+		tierText,
 		null,
 		null
 	)
+
+	override val displayName: Component = ofChildren(tierText, space(), nameText)
+	override val description: Component get() = text("Harvests crops. Crops will be harvested opposite of the sign, up to $regionDepth blocks away.")
 
 	val powerPerCrop: Int = 10
 	abstract val regionDepth: Int
@@ -124,12 +131,12 @@ abstract class HarvesterMultiblock(val tierMaterial: Material, val tierNumber: I
 
 		override val displayHandler = DisplayHandlers.newMultiblockSignOverlay(
 			this,
-			PowerEntityDisplay(this, +0.0, +0.0, +0.0, 0.45f),
-			StatusDisplay(statusManager, +0.0, -0.10, +0.0, 0.45f)
+			{ PowerEntityDisplayModule(it, this) },
+			{ StatusDisplayModule(it, statusManager) }
 		).register()
 
 		override fun tick() {
-			val inventory = getInventory(right = 0, up = 0, forward = 2) ?: return tickingManager.sleep(1000)
+			val inventory = getInventory(right = 0, up = 0, forward = 2) ?: return tickingManager.sleepForTicks(1000)
 			var broken = 0
 
 			val initialPower = powerStorage.getPower()
@@ -148,13 +155,13 @@ abstract class HarvesterMultiblock(val tierMaterial: Material, val tierNumber: I
 
 				for (item in drops) {
 					if (!LegacyItemUtils.canFit(inventory, item)) {
-						tickingManager.sleep(800)
+						tickingManager.sleepForTicks(800)
 						break
 					}
 				}
 
 				if ((broken + 1) * multiblock.powerPerCrop > initialPower) {
-					tickingManager.sleep(500)
+					tickingManager.sleepForTicks(500)
 					break
 				}
 

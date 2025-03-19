@@ -4,13 +4,13 @@ import net.horizonsend.ion.server.features.multiblock.manager.MultiblockManager
 import net.horizonsend.ion.server.features.transport.manager.TransportManager
 import net.horizonsend.ion.server.features.transport.manager.extractors.ExtractorManager
 import net.horizonsend.ion.server.features.transport.nodes.cache.TransportCache
+import net.horizonsend.ion.server.features.transport.nodes.inputs.InputManager
 import net.horizonsend.ion.server.features.transport.nodes.types.Node
-import net.horizonsend.ion.server.features.transport.util.CacheType
 import net.horizonsend.ion.server.miscellaneous.utils.coordinates.BlockKey
 import org.bukkit.World
 
-interface CacheHolder <T: TransportCache> {
-	val transportManager: TransportManager
+interface CacheHolder<T: TransportCache> {
+	val transportManager: TransportManager<*>
 	val cache: T
 
 	fun getWorld(): World
@@ -41,5 +41,19 @@ interface CacheHolder <T: TransportCache> {
 
 	fun getExtractorManager(): ExtractorManager
 
-	abstract val nodeProvider: (CacheType, World, BlockKey) -> Node?
+	fun getInputManager(): InputManager
+
+	fun getCacheHolderAt(key: BlockKey): CacheHolder<T>?
+
+	/** Gets the node at the specified location, caches if needed */
+	val globalGetter: CacheProvider
+
+	/** Gets the node at the specified location, does not cache */
+	val globalCacherGetter: CacheProvider
 }
+
+/**
+ * A cache holder specific lookup. Used to differentiate ship and chunk caches.
+ * TransportCache is the transport cache of whatever is performing the lookup. Passing this variable can eliminate costly chunk lookups.
+ **/
+typealias CacheProvider = (TransportCache, World, BlockKey) -> Pair<TransportCache, Node?>?

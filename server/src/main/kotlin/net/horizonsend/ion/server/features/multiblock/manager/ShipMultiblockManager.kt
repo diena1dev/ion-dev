@@ -14,23 +14,26 @@ import net.horizonsend.ion.server.features.multiblock.entity.type.ticked.SyncTic
 import net.horizonsend.ion.server.features.multiblock.type.EntityMultiblock
 import net.horizonsend.ion.server.features.starship.Starship
 import net.horizonsend.ion.server.features.starship.movement.StarshipMovement
+import net.horizonsend.ion.server.features.transport.manager.TransportManager
 import net.horizonsend.ion.server.features.transport.nodes.cache.TransportCache
 import net.horizonsend.ion.server.features.transport.nodes.inputs.InputManager
 import net.horizonsend.ion.server.features.transport.util.CacheType
 import net.horizonsend.ion.server.features.world.IonWorld.Companion.ion
 import net.horizonsend.ion.server.miscellaneous.registrations.persistence.NamespacedKeys
-import net.horizonsend.ion.server.miscellaneous.utils.coordinates.BlockKey
-import net.horizonsend.ion.server.miscellaneous.utils.coordinates.getX
-import net.horizonsend.ion.server.miscellaneous.utils.coordinates.getY
-import net.horizonsend.ion.server.miscellaneous.utils.coordinates.getZ
+import net.horizonsend.ion.server.miscellaneous.utils.coordinates.Vec3i
+import net.horizonsend.ion.server.miscellaneous.utils.coordinates.getRelative
 import net.horizonsend.ion.server.miscellaneous.utils.coordinates.toBlockKey
 import net.horizonsend.ion.server.miscellaneous.utils.getBlockTypeSafe
 import net.horizonsend.ion.server.miscellaneous.utils.getFacing
 import net.horizonsend.ion.server.miscellaneous.utils.isWallSign
+import org.bukkit.World
+import org.bukkit.block.BlockFace
 import org.bukkit.block.Sign
 import java.util.concurrent.ConcurrentHashMap
 
 class ShipMultiblockManager(val starship: Starship) : MultiblockManager(IonServer.slF4JLogger) {
+	var referenceForward: BlockFace = BlockFace.NORTH
+
 	private val multiblockLinkageManager = ShipLinkageManager(this)
 	override var multiblockEntities: ConcurrentHashMap<Long, MultiblockEntity> = ConcurrentHashMap()
 
@@ -44,6 +47,8 @@ class ShipMultiblockManager(val starship: Starship) : MultiblockManager(IonServe
 		return starship.transportManager.getInputProvider()
 	}
 
+	override fun getTransportManager(): TransportManager<*> = starship.transportManager
+
 	override fun getLinkageManager(): MultiblockLinkageManager {
 		return multiblockLinkageManager
 	}
@@ -56,25 +61,36 @@ class ShipMultiblockManager(val starship: Starship) : MultiblockManager(IonServe
 		return type.get(starship)
 	}
 
-	init {
+	fun processLoad(): ShipMultiblockManager {
 		loadEntities()
 		tryFixEntities()
-		multiblockLinkageManager.pilot()
+		multiblockLinkageManager
+
 		MultiblockTicking.registerMultiblockManager(this)
+
+		return this
 	}
 
 	private fun loadEntities() {
 		val worldManager = world.ion.multiblockManager
 
 		starship.iterateBlocks { x, y, z ->
-			val modernBlockKey = toBlockKey(x, y, z)
-			val manager = worldManager.getChunkManager(modernBlockKey) ?: return@iterateBlocks
+			val globalKey = toBlockKey(x, y, z)
+			val manager = worldManager.getChunkManager(globalKey) ?: return@iterateBlocks
 
-			manager.handleTransfer(modernBlockKey, this)
+			manager.handleTransferTo(
+				globalKey,
+				toBlockKey(
+					x - starship.centerOfMass.x,
+					y - starship.centerOfMass.y,
+					z - starship.centerOfMass.z,
+				),
+				this
+			)
 		}
 	}
 
-	fun release() {
+	fun onDestroy() {
 		MultiblockTicking.removeMultiblockManager(this)
 		releaseEntities()
 	}
@@ -82,8 +98,8 @@ class ShipMultiblockManager(val starship: Starship) : MultiblockManager(IonServe
 	private fun releaseEntities() {
 		val worldManager = world.ion.multiblockManager
 
-		for ((key, multiblockEntity) in multiblockEntities) {
-			val network = worldManager.getChunkManager(key) ?: continue
+		for ((localKey, multiblockEntity) in multiblockEntities) {
+			val network = worldManager.getChunkManager(multiblockEntity.globalBlockKey) ?: continue
 
 			// If it was lost, don't place it back
 			if (!multiblockEntity.isIntact(checkSign = true)) {
@@ -91,74 +107,19 @@ class ShipMultiblockManager(val starship: Starship) : MultiblockManager(IonServe
 				continue
 			}
 
-			network.getAllMultiblockEntities()[key] = multiblockEntity
-			multiblockEntity.manager = network
+			handleTransferTo(
+				localKey,
+				multiblockEntity.globalBlockKey,
+				network
+			)
 		}
-
-		for ((key, multiblockEntity) in syncTickingMultiblockEntities) {
-			val network = worldManager.getChunkManager(key) ?: continue
-
-			// If it was lost, don't place it back
-			if (!(multiblockEntity as MultiblockEntity).isIntact(checkSign = true)) {
-				multiblockEntity.processRemoval()
-				continue
-			}
-
-			network.syncTickingMultiblockEntities[key] = multiblockEntity
-		}
-
-		for ((key, multiblockEntity) in asyncTickingMultiblockEntities) {
-			val network = worldManager.getChunkManager(key) ?: continue
-
-			// If it was lost, don't place it back
-			if (!(multiblockEntity as MultiblockEntity).isIntact(checkSign = true)) {
-				multiblockEntity.processRemoval()
-				continue
-			}
-
-			network.asyncTickingMultiblockEntities[key] = multiblockEntity
-		}
-	}
-
-	private fun displaceKey(movement: StarshipMovement, key: BlockKey): BlockKey {
-		val x = getX(key)
-		val y = getY(key)
-		val z = getZ(key)
-
-		return toBlockKey(
-			movement.displaceX(x, z),
-			movement.displaceY(y),
-			movement.displaceZ(z, x),
-		)
 	}
 
 	fun displace(movement: StarshipMovement) {
-		val newEntities = ConcurrentHashMap<Long, MultiblockEntity>()
-
 		for (entry in multiblockEntities) {
 			val entity = entry.value
 			entity.displace(movement)
-
-			newEntities[displaceKey(movement, entry.key)] = entity
 		}
-
-		multiblockEntities = newEntities
-
-		val newSyncTicking = ConcurrentHashMap<Long, SyncTickingMultiblockEntity>()
-
-		for (entry in syncTickingMultiblockEntities) {
-			newSyncTicking[displaceKey(movement, entry.key)] = entry.value
-		}
-
-		syncTickingMultiblockEntities = newSyncTicking
-
-		val newAsyncTicking = ConcurrentHashMap<Long, AsyncTickingMultiblockEntity>()
-
-		for (entry in asyncTickingMultiblockEntities) {
-			newAsyncTicking[displaceKey(movement, entry.key)] = entry.value
-		}
-
-		asyncTickingMultiblockEntities = newAsyncTicking
 
 		multiblockLinkageManager.displace(movement)
 	}
@@ -172,24 +133,53 @@ class ShipMultiblockManager(val starship: Starship) : MultiblockManager(IonServe
 			val state = world.getBlockState(x, y, z) as? Sign ?: return@iterateBlocks
 			val origin = MultiblockEntity.getOriginFromSign(state)
 
-			if (isOccupied(origin.x, origin.y, origin.z)) return@iterateBlocks
+			if (isOccupied(
+					origin.x - starship.centerOfMass.x,
+					origin.y - starship.centerOfMass.y,
+					origin.z - starship.centerOfMass.z
+			)) return@iterateBlocks
 
 			val multiblock = MultiblockAccess.getFast(state)
 			if (multiblock !is EntityMultiblock<*>) return@iterateBlocks
 
 			val data = state.persistentDataContainer.get(NamespacedKeys.MULTIBLOCK_ENTITY_DATA, PersistentMultiblockData) ?: return MultiblockEntities.migrateFromSign(state, multiblock)
 
-
 			// In case it moved
-			data.x = origin.x
-			data.y = origin.y
-			data.z = origin.z
+			data.x = origin.x - starship.centerOfMass.x
+			data.y = origin.y - starship.centerOfMass.y
+			data.z = origin.z - starship.centerOfMass.z
 			data.signOffset = state.getFacing().oppositeFace
 
 			val new = MultiblockEntities.loadFromData(multiblock, this, data)
 			if (new is LegacyMultiblockEntity) new.loadFromSign(state)
 
 			addMultiblockEntity(new)
+		}
+	}
+
+	override fun getGlobalCoordinate(localVec3i: Vec3i): Vec3i {
+		return starship.getGlobalCoordinate(localVec3i)
+	}
+
+	override fun getLocalCoordinate(globalVec3i: Vec3i): Vec3i {
+		return starship.getLocalCoordinate(globalVec3i)
+	}
+
+	override fun getGlobalMultiblockEntity(world: World, x: Int, y: Int, z: Int): MultiblockEntity? {
+		return get(x, y, z)
+	}
+
+	/**
+	 * Multiblock entities are stored on the block the sign is placed on.
+	 **/
+	override operator fun get(sign: Sign): MultiblockEntity? {
+		val local = getLocalCoordinate(Vec3i(sign.x, sign.y, sign.z))
+		return multiblockEntities[getRelative(toBlockKey(local), sign.getFacing().oppositeFace)]
+	}
+
+	fun clearData() {
+		multiblockEntities.forEachKey(1) { key ->
+			removeMultiblockEntity(key)
 		}
 	}
 }

@@ -6,9 +6,7 @@ import net.horizonsend.ion.server.features.custom.blocks.CustomBlocks.ENRICHED_U
 import net.horizonsend.ion.server.features.custom.blocks.CustomBlocks.NETHERITE_CASING
 import net.horizonsend.ion.server.features.custom.items.CustomItemRegistry.customItem
 import net.horizonsend.ion.server.features.custom.items.type.CustomBlockItem
-import net.horizonsend.ion.server.features.transport.manager.extractors.ExtractorManager.Companion.EXTRACTOR_TYPE
-import net.horizonsend.ion.server.features.transport.old.Wires
-import net.horizonsend.ion.server.features.transport.old.pipe.Pipes
+import net.horizonsend.ion.server.features.transport.manager.extractors.ExtractorManager.Companion.STANDARD_EXTRACTOR_TYPE
 import net.horizonsend.ion.server.miscellaneous.utils.CARDINAL_BLOCK_FACES
 import net.horizonsend.ion.server.miscellaneous.utils.CONCRETE_TYPES
 import net.horizonsend.ion.server.miscellaneous.utils.MATERIALS
@@ -27,6 +25,7 @@ import net.horizonsend.ion.server.miscellaneous.utils.isDoor
 import net.horizonsend.ion.server.miscellaneous.utils.isFroglight
 import net.horizonsend.ion.server.miscellaneous.utils.isGlass
 import net.horizonsend.ion.server.miscellaneous.utils.isGlassPane
+import net.horizonsend.ion.server.miscellaneous.utils.isPipedInventory
 import net.horizonsend.ion.server.miscellaneous.utils.isRedstoneLamp
 import net.horizonsend.ion.server.miscellaneous.utils.isSlab
 import net.horizonsend.ion.server.miscellaneous.utils.isStairs
@@ -184,6 +183,9 @@ class MultiblockShape {
 			val x = offset.x
 			val y = offset.y
 			val z = offset.z
+
+			if ((y + origin.y) !in origin.world.minHeight ..< origin.world.maxHeight) return@all false
+
 			val relative: Block = if (loadChunks) {
 				origin.getRelative(x, y, z)
 			} else {
@@ -329,32 +331,30 @@ class MultiblockShape {
 
 		fun anySlabOrStairs() = filteredTypes("any slab or stairs", { setExample(Material.STONE_BRICK_SLAB) }) { it.isSlab || it.isStairs }
 
-		fun terracottaOrDoubleslab() {
-			BlockRequirement(
-				alias = "any double slab or terracotta block",
-				example = Material.CYAN_TERRACOTTA.createBlockData(),
-				syncCheck = { block, _, loadChunks ->
-					val blockData: BlockData? = if (loadChunks) block.blockData else getBlockDataSafe(block.world, block.x, block.y, block.z)
-					val blockType = if (loadChunks) block.type else block.getTypeSafe()
+		fun terracottaOrDoubleSlab() = complete(BlockRequirement(
+			alias = "any double slab or terracotta block",
+			example = Material.CYAN_TERRACOTTA.createBlockData(),
+			syncCheck = { block, _, loadChunks ->
+				val blockData: BlockData? = if (loadChunks) block.blockData else getBlockDataSafe(block.world, block.x, block.y, block.z)
+				val blockType = if (loadChunks) block.type else block.getTypeSafe()
 
-					(blockData is Slab && blockData.type == DOUBLE) || TERRACOTTA_TYPES.contains(blockType)
+				(blockData is Slab && blockData.type == DOUBLE) || TERRACOTTA_TYPES.contains(blockType)
+			},
+			itemRequirement = BlockRequirement.ItemRequirement(
+				itemCheck = { (it.type.isSlab && it.amount >= 2) || it.type.isTerracotta  },
+				amountConsumed = { if (it.type.isSlab) 2 else 1 },
+				toBlock = { item ->
+					val type = item.type
+					if (type.isSlab) {
+						(type.createBlockData() as Slab).apply { this.type = DOUBLE }
+					} else type.createBlockData()
 				},
-				itemRequirement = BlockRequirement.ItemRequirement(
-					itemCheck = { (it.type.isSlab && it.amount >= 2) || it.type.isTerracotta  },
-					amountConsumed = { if (it.type.isSlab) 2 else 1 },
-					toBlock = { item ->
-						val type = item.type
-						if (type.isSlab) {
-							(type.createBlockData() as Slab).apply { this.type = DOUBLE }
-						} else type.createBlockData()
-					},
-					{ block ->
-						val type = block.material
-						if (type.isSlab) ItemStack(type, 2) else ItemStack(type)
-					}
-				),
+				{ block ->
+					val type = block.material
+					if (type.isSlab) ItemStack(type, 2) else ItemStack(type)
+				}
 			)
-		}
+		))
 
 		fun sculkCatalyst() = type(Material.SCULK_CATALYST)
 
@@ -477,15 +477,15 @@ class MultiblockShape {
 		)
 
 		fun fluidInput() = type(Material.FLETCHING_TABLE)
-		fun powerInput() = type(Wires.INPUT_COMPUTER_BLOCK)
-		fun extractor() = type(EXTRACTOR_TYPE)
+		fun powerInput() = type(Material.NOTE_BLOCK)
+		fun extractor() = type(STANDARD_EXTRACTOR_TYPE)
 
 		fun sponge() = anyType(Material.SPONGE, Material.WET_SPONGE, alias = "sponge")
 		fun endRod(edit: BlockRequirement.() -> Unit = {}) = type(Material.END_ROD, edit)
 		fun lightningRod(edit: BlockRequirement.() -> Unit = {}) = type(Material.LIGHTNING_ROD, edit)
 
 		fun hopper() = type(Material.HOPPER)
-		fun anyPipedInventory() = filteredTypes("any container block", edit = { setExample(Material.CHEST.createBlockData()) }) { Pipes.isPipedInventory(it) }
+		fun anyPipedInventory() = filteredTypes("any container block", edit = { setExample(Material.CHEST.createBlockData()) }) { it.isPipedInventory }
 		fun dispenser() = type(Material.DISPENSER)
 
 		fun netheriteCasing() = customBlock(NETHERITE_CASING)

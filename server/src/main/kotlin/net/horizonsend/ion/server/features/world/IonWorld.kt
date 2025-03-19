@@ -4,8 +4,8 @@ import com.destroystokyo.paper.event.server.ServerTickStartEvent
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import net.horizonsend.ion.common.utils.configuration.Configuration
-import net.horizonsend.ion.server.configuration.ConfigurationFiles
 import net.horizonsend.ion.server.IonServerComponent
+import net.horizonsend.ion.server.configuration.ConfigurationFiles
 import net.horizonsend.ion.server.features.multiblock.manager.WorldMultiblockManager
 import net.horizonsend.ion.server.features.starship.active.ActiveStarship
 import net.horizonsend.ion.server.features.transport.nodes.inputs.WorldInputManager
@@ -22,6 +22,7 @@ import org.bukkit.Chunk
 import org.bukkit.World
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
+import org.bukkit.event.entity.CreatureSpawnEvent
 import org.bukkit.event.world.WorldInitEvent
 import org.bukkit.event.world.WorldSaveEvent
 import org.bukkit.event.world.WorldUnloadEvent
@@ -39,15 +40,15 @@ class IonWorld private constructor(
 			field = value
 		}
 
+	val multiblockManager = WorldMultiblockManager(this)
+	val inputManager = WorldInputManager(this)
+
 	/**
 	 * Key: The location of the chunk packed into a long
 	 *
 	 * Value: The IonChunk at that location
 	 **/
 	private val chunks: Long2ObjectOpenHashMap<IonChunk> = Long2ObjectOpenHashMap()
-
-	val multiblockManager = WorldMultiblockManager(this)
-	val inputManager = WorldInputManager(this)
 
 	/**
 	 * Gets the IonChunk at the specified coordinates if it is loaded
@@ -65,13 +66,13 @@ class IonWorld private constructor(
 		return chunks[key]
 	}
 
-	fun isChunkLoaded(key: Long) = chunks.keys.contains(key)
+	fun isChunkLoaded(key: Long) = chunks.containsKey(key)
 
 	/**
 	 * Adds the chunk
 	 **/
 	fun addChunk(chunk: IonChunk) {
-		if (chunks.containsKey(chunk.locationKey)) {
+		if (isChunkLoaded(chunk.locationKey)) {
 			log.warn("Attempted to add a chunk that was already in the map!")
 		}
 
@@ -131,6 +132,8 @@ class IonWorld private constructor(
 		private val WORLD_CONFIGURATION_DIRECTORY = ConfigurationFiles.configurationFolder.resolve("worlds").apply { mkdirs() }
 
 		private val ionWorlds = mutableMapOf<World, IonWorld>()
+
+		fun all() = ionWorlds.values
 
 		operator fun get(world: World): IonWorld = ionWorlds[world] ?: throw IllegalStateException("Unregistered Ion World: $world!")
 
@@ -197,6 +200,11 @@ class IonWorld private constructor(
 		}
 
 		@EventHandler
+		fun onMobSpawn(event: CreatureSpawnEvent) {
+			event.location.world.ion.customMonSpawner.handleSpawnEvent(event)
+		}
+
+		@EventHandler
 		fun onWorldSave(event: WorldSaveEvent) {
 			saveAllChunks(event.world.ion)
 		}
@@ -234,5 +242,5 @@ class IonWorld private constructor(
 		world.persistentDataContainer.set(FORBIDDEN_BLOCKS, LONG_ARRAY, detectionForbiddenBlocks.toLongArray())
 	}
 
-	fun getAllChunks() = chunks
+	fun getAllChunks() = chunks.values
 }

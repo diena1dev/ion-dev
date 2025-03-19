@@ -8,6 +8,7 @@ import net.horizonsend.ion.server.command.admin.debug
 import net.horizonsend.ion.server.features.client.display.ClientDisplayEntities.highlightBlock
 import net.horizonsend.ion.server.features.multiblock.Multiblock
 import net.horizonsend.ion.server.features.multiblock.shape.MultiblockShape
+import net.horizonsend.ion.server.features.multiblock.type.DisplayNameMultilblock
 import net.horizonsend.ion.server.features.multiblock.type.InteractableMultiblock
 import net.horizonsend.ion.server.features.starship.active.ActiveStarships
 import net.horizonsend.ion.server.listener.SLEventListener
@@ -23,6 +24,8 @@ import net.horizonsend.ion.server.miscellaneous.utils.isSlab
 import net.horizonsend.ion.server.miscellaneous.utils.isStairs
 import net.horizonsend.ion.server.miscellaneous.utils.isWallSign
 import net.kyori.adventure.sound.Sound
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.Component.text
 import net.kyori.adventure.text.format.TextColor.color
 import org.bukkit.Location
 import org.bukkit.Material
@@ -39,7 +42,7 @@ import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause
 import org.bukkit.event.player.PlayerToggleSneakEvent
 import java.util.concurrent.TimeUnit
 
-abstract class AbstractTractorBeam : Multiblock(), InteractableMultiblock {
+abstract class AbstractTractorBeam : Multiblock(), InteractableMultiblock, DisplayNameMultilblock {
 	override val name = "tractorbeam"
 
 	override val signText = createSignText(
@@ -166,12 +169,15 @@ abstract class AbstractTractorBeam : Multiblock(), InteractableMultiblock {
 		private fun checkMultiblock(block: Block): Boolean {
 			if (!block.type.isGlass) return false
 
-			return TractorBeamMultiblock.isInteriorBlock(block) || LargeTractorBeamMultiblock.isInteriorBlock(block)
+			return TractorBeamMultiblock.isInteriorBlock(block) || MediumTractorBeamMultiblock.isInteriorBlock(block) || LargeTractorBeamMultiblock.isInteriorBlock(block)
 		}
 	}
 }
 
 object TractorBeamMultiblock : AbstractTractorBeam() {
+	override val displayName: Component get() = text("Tractor Beam")
+	override val description: Component get() = text("Allows players to ascend or descend between floors, or between a starship and planet surface. 1x1 area.")
+
 	override fun MultiblockShape.buildStructure() {
 		at(+0, +0, +0).anySlabOrStairs()
 		at(-1, +0, +1).anySlabOrStairs()
@@ -195,7 +201,61 @@ object TractorBeamMultiblock : AbstractTractorBeam() {
 	}
 }
 
+object MediumTractorBeamMultiblock : AbstractTractorBeam() {
+	override val displayName: Component get() = text("Medium Tractor Beam")
+	override val description: Component get() = text("Allows players to ascend or descend between floors, or between a starship and planet surface. 2x2 area.")
+
+	override fun MultiblockShape.buildStructure() {
+		z(0) {
+			y(0) {
+				x(+0).anySlabOrStairs()
+				x(+1).anySlabOrStairs()
+			}
+		}
+		z(1) {
+			y(0) {
+				x(-1).anySlabOrStairs()
+				x(+0).anyGlass()
+				x(+1).anyGlass()
+				x(+2).anySlabOrStairs()
+			}
+		}
+		z(2) {
+			y(0) {
+				x(-1).anySlabOrStairs()
+				x(+0).anyGlass()
+				x(+1).anyGlass()
+				x(+2).anySlabOrStairs()
+			}
+		}
+		z(3) {
+			y(0) {
+				x(+0).anySlabOrStairs()
+				x(+1).anySlabOrStairs()
+			}
+		}
+	}
+
+	override fun isInteriorBlock(block: Block): Boolean {
+		for (x in -1..+2) for (z in -1..+2) {
+			val edgeBlock = block.getRelativeIfLoaded(x, 0, z) ?: continue
+			debugAudience.highlightBlock(Vec3i(edgeBlock.location), 10L)
+			if (!(edgeBlock.type.isSlab || edgeBlock.type.isStairs)) continue
+
+			for (face in CARDINAL_BLOCK_FACES) {
+				if (!blockMatchesStructure(edgeBlock, face)) continue
+				return true
+			}
+		}
+
+		return false
+	}
+}
+
 object LargeTractorBeamMultiblock : AbstractTractorBeam() {
+	override val displayName: Component get() = text("Large Tractor Beam")
+	override val description: Component get() = text("Allows players to ascend or descend between floors, or between a starship and planet surface. 3x3 area.")
+
 	override fun MultiblockShape.buildStructure() {
 		z(0) {
 			y(0) {

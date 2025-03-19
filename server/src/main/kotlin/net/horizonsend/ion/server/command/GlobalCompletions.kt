@@ -4,6 +4,7 @@ import co.aikar.commands.PaperCommandManager
 import com.google.common.cache.CacheBuilder
 import com.google.common.cache.CacheLoader
 import com.google.common.cache.LoadingCache
+import net.horizonsend.ion.server.features.chat.ChatChannel
 import net.horizonsend.ion.server.features.custom.items.CustomItemRegistry
 import net.horizonsend.ion.server.features.custom.items.CustomItemRegistry.customItem
 import net.horizonsend.ion.server.features.economy.bazaar.Bazaars
@@ -20,10 +21,11 @@ object GlobalCompletions {
 		manager.commandCompletions.registerAsyncCompletion( "anyItem") { Bazaars.strings }
 		manager.commandCompletions.setDefaultCompletion("anyItem", AnyItem::class.java)
 		manager.commandCompletions.registerAsyncCompletion("anyBlock") { Material.entries.filter { it.isBlock && !it.isLegacy }.map { it.name } }
+		manager.commandCompletions.registerAsyncCompletion("chatChannel") { ChatChannel.entries.map { it.name.lowercase() } }
 	}
 
 	fun toItemString(item: ItemStack): String {
-		return item.customItem?.identifier ?: item.type.toString()
+		return item.customItem?.getBazaarString(item) ?: item.type.toString()
 	}
 
 	val stringItemCache: LoadingCache<String, Optional<ItemStack>> = CacheBuilder.newBuilder().build(
@@ -34,7 +36,7 @@ object GlobalCompletions {
 
 	fun stringToItem(string: String): ItemStack? {
 		// if a custom item is found, use that
-		CustomItemRegistry.getByIdentifier(string)?.let { return it.constructItemStack() }
+		CustomItemRegistry.getByIdentifier(string.substringBefore('['))?.let { return it.fromBazaarString(string) }
 
 		val material: Material = try { Material.valueOf(string) } catch (e: Throwable) { return null }
 

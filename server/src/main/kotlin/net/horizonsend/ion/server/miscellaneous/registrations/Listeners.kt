@@ -10,6 +10,7 @@ import net.horizonsend.ion.server.features.custom.items.type.weapon.blaster.Blas
 import net.horizonsend.ion.server.features.gui.interactable.InteractableGUI
 import net.horizonsend.ion.server.features.machine.CryoPods
 import net.horizonsend.ion.server.features.multiblock.MultiblockEntities
+import net.horizonsend.ion.server.features.multiblock.PrePackaged
 import net.horizonsend.ion.server.features.multiblock.type.misc.AbstractTractorBeam
 import net.horizonsend.ion.server.features.progression.achievements.AchievementListeners
 import net.horizonsend.ion.server.features.space.encounters.EncounterManager
@@ -28,7 +29,6 @@ import net.horizonsend.ion.server.listener.misc.BlockListener
 import net.horizonsend.ion.server.listener.misc.BowHitListener
 import net.horizonsend.ion.server.listener.misc.ChatListener
 import net.horizonsend.ion.server.listener.misc.EntityListener
-import net.horizonsend.ion.server.listener.misc.FurnaceListener
 import net.horizonsend.ion.server.listener.misc.HeadListener
 import net.horizonsend.ion.server.listener.misc.InventoryListener
 import net.horizonsend.ion.server.listener.misc.JoinLeaveListener
@@ -51,7 +51,6 @@ val listeners: List<Listener> = listOf(
 
 	BlockListener,
 	EntityListener,
-	FurnaceListener,
 	InventoryListener,
 	BowHitListener,
 
@@ -83,6 +82,7 @@ val listeners: List<Listener> = listOf(
 	ActivePlayerController.Companion,
 	PersonalTransporterManager,
 	MultiblockEntities,
+	PrePackaged,
 
 	// Achievement Listeners
 	AchievementListeners(),

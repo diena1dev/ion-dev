@@ -3,21 +3,18 @@ package net.horizonsend.ion.server.features.custom.items
 import net.horizonsend.ion.common.utils.text.colors.HEColorScheme.Companion.HE_LIGHT_ORANGE
 import net.horizonsend.ion.common.utils.text.colors.HEColorScheme.Companion.HE_MEDIUM_GRAY
 import net.horizonsend.ion.common.utils.text.ofChildren
-import net.horizonsend.ion.common.utils.text.text
 import net.horizonsend.ion.server.IonServerComponent
 import net.horizonsend.ion.server.configuration.ConfigurationFiles
 import net.horizonsend.ion.server.configuration.PVPBalancingConfiguration
 import net.horizonsend.ion.server.configuration.PVPBalancingConfiguration.EnergyWeapons.Multishot
 import net.horizonsend.ion.server.configuration.PVPBalancingConfiguration.EnergyWeapons.Singleshot
+import net.horizonsend.ion.server.features.client.display.modular.display.PowerEntityDisplayModule.Companion.powerPrefix
 import net.horizonsend.ion.server.features.custom.blocks.CustomBlock
 import net.horizonsend.ion.server.features.custom.blocks.CustomBlocks
 import net.horizonsend.ion.server.features.custom.items.CustomItemListeners.sortCustomItemListeners
-import net.horizonsend.ion.server.features.custom.items.component.CustomComponentTypes
-import net.horizonsend.ion.server.features.custom.items.component.Smeltable
 import net.horizonsend.ion.server.features.custom.items.misc.MultiblockToken
 import net.horizonsend.ion.server.features.custom.items.misc.MultimeterItem
 import net.horizonsend.ion.server.features.custom.items.misc.PackagedMultiblock
-import net.horizonsend.ion.server.features.custom.items.misc.TransportFilterItem
 import net.horizonsend.ion.server.features.custom.items.misc.Wrench
 import net.horizonsend.ion.server.features.custom.items.type.CustomBlockItem
 import net.horizonsend.ion.server.features.custom.items.type.GasCanister
@@ -42,16 +39,13 @@ import net.horizonsend.ion.server.features.custom.items.type.weapon.sword.Energy
 import net.horizonsend.ion.server.features.custom.items.util.ItemFactory
 import net.horizonsend.ion.server.features.custom.items.util.ItemFactory.Preset.stackableCustomItem
 import net.horizonsend.ion.server.features.custom.items.util.ItemFactory.Preset.unStackableCustomItem
-import net.horizonsend.ion.server.features.custom.items.util.withComponent
 import net.horizonsend.ion.server.features.gas.Gasses
-import net.horizonsend.ion.server.features.machine.PowerMachines
-import net.horizonsend.ion.server.features.transport.filters.FilterBlocks
 import net.horizonsend.ion.server.miscellaneous.registrations.persistence.NamespacedKeys.CUSTOM_ITEM
 import net.horizonsend.ion.server.miscellaneous.utils.Tasks
-import net.horizonsend.ion.server.miscellaneous.utils.map
 import net.horizonsend.ion.server.miscellaneous.utils.text.itemName
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.Component.text
+import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.NamedTextColor.BLACK
 import net.kyori.adventure.text.format.NamedTextColor.BLUE
 import net.kyori.adventure.text.format.NamedTextColor.DARK_GREEN
@@ -217,39 +211,39 @@ object CustomItemRegistry : IonServerComponent() {
 	val CANNON_RECEIVER = register("CANNON_RECEIVER", text("Cannon Receiver"), unStackableCustomItem("industry/cannon_receiver"))
 
 	// Minerals start
-	private fun registerRawOre(identifier: String, name: String, smeltingResult: Supplier<CustomItem>) = register(identifier, text("Raw ${name.replaceFirstChar { it.uppercase() }}"), stackableCustomItem(model = "mineral/raw_$name")).withComponent(CustomComponentTypes.SMELTABLE, Smeltable(smeltingResult.map { it.constructItemStack() }))
-	private fun registerOreIngot(identifier: String, name: String) = register(identifier, text("${name.replaceFirstChar { it.uppercase() }} Ingot"), stackableCustomItem(model = "mineral/$name"))
-	private fun registerOreBlock(identifier: String, name: String, block: Supplier<CustomBlock>, smeltingResult: Supplier<CustomItem>) = customBlockItem(identifier, "mineral/${name}_ore", text("${name.replaceFirstChar { it.uppercase() }} Ore"), block).withComponent(CustomComponentTypes.SMELTABLE, Smeltable(smeltingResult.map { it.constructItemStack() }))
+	private fun registerRawOre(identifier: String, name: String) = register(identifier, text("Raw ${name.replaceFirstChar { it.uppercase() }}"), stackableCustomItem(model = "mineral/raw_$name"))
+	private fun registerOreIngot(identifier: String, name: String, useSuffix: Boolean) = register(identifier, text("${name.replaceFirstChar { it.uppercase() }}${if (useSuffix) " Ingot" else ""}"), stackableCustomItem(model = "mineral/$name"))
+	private fun registerOreBlock(identifier: String, name: String, block: Supplier<CustomBlock>) = customBlockItem(identifier, "mineral/${name}_ore", text("${name.replaceFirstChar { it.uppercase() }} Ore"), block)
 	private fun registerIngotBlock(identifier: String, name: String, block: Supplier<CustomBlock>) = customBlockItem(identifier, "mineral/${name}_block", text("${name.replaceFirstChar { it.uppercase() }} Block"), block)
 	private fun registerRawBlock(identifier: String, name: String, block: Supplier<CustomBlock>) = customBlockItem(identifier, "mineral/raw_${name}_block", text("Raw ${name.replaceFirstChar { it.uppercase() }} Block"), block)
 
-	val ALUMINUM_INGOT = registerOreIngot("ALUMINUM_INGOT", "aluminum")
-	val RAW_ALUMINUM = registerRawOre("RAW_ALUMINUM", "aluminum", smeltingResult = CustomItemRegistry::ALUMINUM_INGOT)
-	val ALUMINUM_ORE = registerOreBlock("ALUMINUM_ORE", "aluminum", block = CustomBlocks::ALUMINUM_ORE, smeltingResult = CustomItemRegistry::ALUMINUM_INGOT)
-	val ALUMINUM_BLOCK = registerIngotBlock("ALUMINUM_BLOCK", "aluminum", block = CustomBlocks::ALUMINUM_BLOCK)
-	val RAW_ALUMINUM_BLOCK = registerRawBlock("RAW_ALUMINUM_BLOCK", "aluminum", block = CustomBlocks::RAW_ALUMINUM_BLOCK)
+	val ALUMINUM_INGOT = registerOreIngot("ALUMINUM_INGOT", "aluminum", true)
+	val RAW_ALUMINUM = registerRawOre("RAW_ALUMINUM", "aluminum")
+	val ALUMINUM_ORE: CustomBlockItem = registerOreBlock("ALUMINUM_ORE", "aluminum", block = CustomBlocks::ALUMINUM_ORE)
+	val ALUMINUM_BLOCK: CustomBlockItem = registerIngotBlock("ALUMINUM_BLOCK", "aluminum", block = CustomBlocks::ALUMINUM_BLOCK)
+	val RAW_ALUMINUM_BLOCK: CustomBlockItem = registerRawBlock("RAW_ALUMINUM_BLOCK", "aluminum", block = CustomBlocks::RAW_ALUMINUM_BLOCK)
 
-	val CHETHERITE = registerOreIngot("CHETHERITE", "chetherite")
-	val CHETHERITE_ORE = registerOreBlock("CHETHERITE_ORE", "chetherite", block = CustomBlocks::CHETHERITE_ORE, smeltingResult = CustomItemRegistry::CHETHERITE)
-	val CHETHERITE_BLOCK = registerIngotBlock("CHETHERITE_BLOCK", "chetherite", block = CustomBlocks::CHETHERITE_BLOCK)
+	val CHETHERITE = registerOreIngot("CHETHERITE", "chetherite", false)
+	val CHETHERITE_ORE: CustomBlockItem = registerOreBlock("CHETHERITE_ORE", "chetherite", block = CustomBlocks::CHETHERITE_ORE)
+	val CHETHERITE_BLOCK: CustomBlockItem = registerIngotBlock("CHETHERITE_BLOCK", "chetherite", block = CustomBlocks::CHETHERITE_BLOCK)
 
-	val TITANIUM_INGOT = registerOreIngot("TITANIUM_INGOT", "titanium")
-	val RAW_TITANIUM = registerRawOre("RAW_TITANIUM", "titanium", smeltingResult = CustomItemRegistry::TITANIUM_INGOT)
-	val TITANIUM_ORE = registerOreBlock("TITANIUM_ORE", "titanium", block = CustomBlocks::TITANIUM_ORE, smeltingResult = CustomItemRegistry::TITANIUM_INGOT)
-	val TITANIUM_BLOCK = registerIngotBlock("TITANIUM_BLOCK", "titanium", block = CustomBlocks::TITANIUM_BLOCK)
-	val RAW_TITANIUM_BLOCK = registerRawBlock("RAW_TITANIUM_BLOCK", "titanium", block = CustomBlocks::RAW_TITANIUM_BLOCK)
+	val TITANIUM_INGOT = registerOreIngot("TITANIUM_INGOT", "titanium", true)
+	val RAW_TITANIUM = registerRawOre("RAW_TITANIUM", "titanium")
+	val TITANIUM_ORE: CustomBlockItem = registerOreBlock("TITANIUM_ORE", "titanium", block = CustomBlocks::TITANIUM_ORE)
+	val TITANIUM_BLOCK: CustomBlockItem = registerIngotBlock("TITANIUM_BLOCK", "titanium", block = CustomBlocks::TITANIUM_BLOCK)
+	val RAW_TITANIUM_BLOCK: CustomBlockItem = registerRawBlock("RAW_TITANIUM_BLOCK", "titanium", block = CustomBlocks::RAW_TITANIUM_BLOCK)
 
-	val URANIUM = registerOreIngot(identifier = "URANIUM", name = "uranium")
-	val RAW_URANIUM = registerRawOre(identifier = "RAW_URANIUM", name = "uranium", smeltingResult = CustomItemRegistry::URANIUM)
-	val URANIUM_ORE = registerOreBlock(identifier = "URANIUM_ORE", name = "uranium", block = CustomBlocks::URANIUM_ORE, smeltingResult = CustomItemRegistry::URANIUM)
-	val URANIUM_BLOCK = registerIngotBlock(identifier = "URANIUM_BLOCK", name = "uranium", block = CustomBlocks::URANIUM_BLOCK)
-	val RAW_URANIUM_BLOCK = registerRawBlock(identifier = "RAW_URANIUM_BLOCK", name = "uranium", block = CustomBlocks::RAW_URANIUM_BLOCK)
+	val URANIUM = registerOreIngot(identifier = "URANIUM", name = "uranium", false)
+	val RAW_URANIUM = registerRawOre(identifier = "RAW_URANIUM", name = "uranium")
+	val URANIUM_ORE: CustomBlockItem = registerOreBlock(identifier = "URANIUM_ORE", name = "uranium", block = CustomBlocks::URANIUM_ORE)
+	val URANIUM_BLOCK: CustomBlockItem = registerIngotBlock(identifier = "URANIUM_BLOCK", name = "uranium", block = CustomBlocks::URANIUM_BLOCK)
+	val RAW_URANIUM_BLOCK: CustomBlockItem = registerRawBlock(identifier = "RAW_URANIUM_BLOCK", name = "uranium", block = CustomBlocks::RAW_URANIUM_BLOCK)
 	// Minerals end
 
 	// Industry start
-	val NETHERITE_CASING = customBlockItem(identifier = "NETHERITE_CASING", model = "industry/netherite_casing", displayName = text("Netherite Casing"), customBlock = CustomBlocks::NETHERITE_CASING)
+	val NETHERITE_CASING: CustomBlockItem = customBlockItem(identifier = "NETHERITE_CASING", model = "industry/netherite_casing", displayName = text("Netherite Casing"), customBlock = CustomBlocks::NETHERITE_CASING)
 	val ENRICHED_URANIUM = stackable(identifier = "ENRICHED_URANIUM", text("Enriched Uranium"), "industry/enriched_uranium")
-	val ENRICHED_URANIUM_BLOCK = customBlockItem(identifier = "ENRICHED_URANIUM_BLOCK", model = "industry/enriched_uranium_block", displayName = text("Enriched Uranium Block"), customBlock = CustomBlocks::ENRICHED_URANIUM_BLOCK)
+	val ENRICHED_URANIUM_BLOCK: CustomBlockItem = customBlockItem(identifier = "ENRICHED_URANIUM_BLOCK", model = "industry/enriched_uranium_block", displayName = text("Enriched Uranium Block"), customBlock = CustomBlocks::ENRICHED_URANIUM_BLOCK)
 	val URANIUM_CORE = unStackable(identifier = "URANIUM_CORE", model = "industry/uranium_core", displayName = text("Uranium Core"))
 	val URANIUM_ROD = unStackable(identifier = "URANIUM_ROD", model = "industry/uranium_rod", displayName = text("Uranium Rod"))
 	val FUEL_ROD_CORE = unStackable(identifier = "FUEL_ROD_CORE", model = "industry/fuel_rod_core", displayName = text("Fuel Rod Core"))
@@ -269,11 +263,11 @@ object CustomItemRegistry : IonServerComponent() {
 	val REACTOR_CONTROL = unStackable(identifier = "REACTOR_CONTROL", model = "industry/reactor_control", displayName = text("Reactor Control", YELLOW))
 
 	val SUPERCONDUCTOR = unStackable(identifier = "SUPERCONDUCTOR", model = "industry/superconductor", displayName = text("Superconductor"))
-	val SUPERCONDUCTOR_BLOCK = customBlockItem(identifier = "SUPERCONDUCTOR_BLOCK", model = "industry/superconductor_block", displayName = text("Superconductor Block"), customBlock = CustomBlocks::SUPERCONDUCTOR_BLOCK)
+	val SUPERCONDUCTOR_BLOCK: CustomBlockItem = customBlockItem(identifier = "SUPERCONDUCTOR_BLOCK", model = "industry/superconductor_block", displayName = text("Superconductor Block"), customBlock = CustomBlocks::SUPERCONDUCTOR_BLOCK)
 	val SUPERCONDUCTOR_CORE = unStackable(identifier = "SUPERCONDUCTOR_CORE", model = "industry/superconductor_core", displayName = text("Superconductor Core", YELLOW))
 
 	val STEEL_INGOT = stackable(identifier = "STEEL_INGOT", text("Steel Ingot"), "industry/steel_ingot")
-	val STEEL_BLOCK = customBlockItem(identifier = "STEEL_BLOCK", model = "industry/steel_block", displayName = text("Steel Block"), customBlock = CustomBlocks::STEEL_BLOCK)
+	val STEEL_BLOCK: CustomBlockItem = customBlockItem(identifier = "STEEL_BLOCK", model = "industry/steel_block", displayName = text("Steel Block"), customBlock = CustomBlocks::STEEL_BLOCK)
 	val STEEL_PLATE = unStackable(identifier = "STEEL_PLATE", model = "industry/steel_plate", displayName = text("Steel Plate"))
 	val STEEL_CHASSIS = unStackable(identifier = "STEEL_CHASSIS", model = "industry/steel_chassis", displayName = text("Steel Chassis"))
 	val STEEL_MODULE = unStackable(identifier = "STEEL_MODULE", model = "industry/steel_module", displayName = text("Steel Module"))
@@ -293,9 +287,9 @@ object CustomItemRegistry : IonServerComponent() {
 	val PROGRESS_HOLDER = register(ProgressHolder)
 
 	// Starship Components Start
-	val BATTLECRUISER_REACTOR_CORE = customBlockItem(identifier = "BATTLECRUISER_REACTOR_CORE", model = "starship/battlecruiser_reactor_core", displayName = text("Battlecruiser Reactor Core", BOLD), customBlock = CustomBlocks::BATTLECRUISER_REACTOR_CORE)
-	val BARGE_REACTOR_CORE = customBlockItem(identifier = "BARGE_REACTOR_CORE", model = "starship/barge_reactor_core", displayName = text("Barge Reactor Core", BOLD), customBlock = CustomBlocks::BARGE_REACTOR_CORE)
-	val CRUISER_REACTOR_CORE = customBlockItem(identifier = "CRUISER_REACTOR_CORE", model = "starship/cruiser_reactor_core", displayName = text("Cruiser Reactor Core", BOLD), customBlock = CustomBlocks::CRUISER_REACTOR_CORE)
+	val BATTLECRUISER_REACTOR_CORE: CustomBlockItem = customBlockItem(identifier = "BATTLECRUISER_REACTOR_CORE", model = "starship/battlecruiser_reactor_core", displayName = text("Battlecruiser Reactor Core", NamedTextColor.WHITE, BOLD), customBlock = CustomBlocks::BATTLECRUISER_REACTOR_CORE)
+	val BARGE_REACTOR_CORE: CustomBlockItem = customBlockItem(identifier = "BARGE_REACTOR_CORE", model = "starship/barge_reactor_core", displayName = text("Barge Reactor Core", NamedTextColor.WHITE, BOLD), customBlock = CustomBlocks::BARGE_REACTOR_CORE)
+	val CRUISER_REACTOR_CORE: CustomBlockItem = customBlockItem(identifier = "CRUISER_REACTOR_CORE", model = "starship/cruiser_reactor_core", displayName = text("Cruiser Reactor Core", NamedTextColor.WHITE, BOLD), customBlock = CustomBlocks::CRUISER_REACTOR_CORE)
 	// Starship Components End
 
 	// Gas canisters start
@@ -326,12 +320,13 @@ object CustomItemRegistry : IonServerComponent() {
 	val MULTIBLOCK_WORKBENCH = register(CustomBlockItem(
 		identifier = "MULTIBLOCK_WORKBENCH",
 		displayName = text("Multiblock Workbench"),
-		customModel = "tool/multiblock_workbench"
+		customModel = "misc/multiblock_workbench"
 	) { CustomBlocks.MULTIBLOCK_WORKBENCH })
 
 	val WRENCH = register(Wrench)
 
-	val FLUID_FILTER: TransportFilterItem = register(TransportFilterItem("FLUID_FILTER", text("Fluid Filter")) { FilterBlocks.FLUID_FILTER })
+	val ADVANCED_ITEM_EXTRACTOR = customBlockItem("ADVANCED_ITEM_EXTRACTOR", "misc/advanced_item_extractor", text("Advanced Item Extractor"), CustomBlocks::ADVANCED_ITEM_EXTRACTOR)
+	val ITEM_FILTER = customBlockItem("ITEM_FILTER", "misc/item_filter", text("Item Filter"), CustomBlocks::ITEM_FILTER)
 
 	private fun formatToolName(tierName: String, tierColor: TextColor, toolName: String) = ofChildren(
 		text("$tierName ", tierColor),
@@ -448,37 +443,37 @@ object CustomItemRegistry : IonServerComponent() {
 	val ARMOR_MODIFICATION_ENVIRONMENT: ModificationItem = register(ModificationItem(
 		"ARMOR_MODIFICATION_ENVRORNMENT",
 		"power_armor/module/environment",
-		ofChildren(Component.text("Enviornment", GRAY), Component.text(" Module", GOLD)),
+		ofChildren(text("Enviornment", GRAY), text(" Module", GOLD)),
 		text("Allows the user to survive inhospitable planetary enviornments.")
 	) { ItemModRegistry.ENVIRONMENT })
 	val ARMOR_MODIFICATION_NIGHT_VISION: ModificationItem = register(ModificationItem(
 		"ARMOR_MODIFICATION_NIGHT_VISION",
 		"power_armor/module/night_vision",
-		ofChildren(Component.text("Night Vision", GRAY), Component.text(" Module", GOLD)),
+		ofChildren(text("Night Vision", GRAY), text(" Module", GOLD)),
 		text("Allows the user to see in dark enviornments. ")
 	) { ItemModRegistry.NIGHT_VISION })
 	val ARMOR_MODIFICATION_PRESSURE_FIELD: ModificationItem = register(ModificationItem(
 		"ARMOR_MODIFICATION_PRESSURE_FIELD",
 		"power_armor/module/pressure_field",
-		ofChildren(Component.text("Pressure Field", GRAY), Component.text(" Module", GOLD)),
+		ofChildren(text("Pressure Field", GRAY), text(" Module", GOLD)),
 		text("Allows the user to breathe in space.")
 	) { ItemModRegistry.PRESSURE_FIELD })
 	val ARMOR_MODIFICATION_ROCKET_BOOSTING: ModificationItem = register(ModificationItem(
 		"ARMOR_MODIFICATION_ROCKET_BOOSTING",
 		"power_armor/module/rocket_boosting",
-		ofChildren(Component.text("Rocket Boosting", GRAY), Component.text(" Module", GOLD)),
+		ofChildren(text("Rocket Boosting", GRAY), text(" Module", GOLD)),
 		text("Allows propelled flight.")
 	) { ItemModRegistry.ROCKET_BOOSTING })
 	val ARMOR_MODIFICATION_SHOCK_ABSORBING: ModificationItem = register(ModificationItem(
 		"ARMOR_MODIFICATION_SHOCK_ABSORBING",
 		"power_armor/module/shock_absorbing",
-		ofChildren(Component.text("Shock Absorbing", GRAY), Component.text(" Module", GOLD)),
+		ofChildren(text("Shock Absorbing", GRAY), text(" Module", GOLD)),
 		text("Reduces knockback.")
 	) { ItemModRegistry.SHOCK_ABSORBING })
 	val ARMOR_MODIFICATION_SPEED_BOOSTING: ModificationItem = register(ModificationItem(
 		"ARMOR_MODIFICATION_SPEED_BOOSTING",
 		"power_armor/module/speed_boosting",
-		ofChildren(Component.text("Speed Boosting", GRAY), Component.text(" Module", GOLD)),
+		ofChildren(text("Speed Boosting", GRAY), text(" Module", GOLD)),
 		text("Boosts the user's running speed.")
 	) { ItemModRegistry.SPEED_BOOSTING })
 
@@ -539,13 +534,13 @@ object CustomItemRegistry : IonServerComponent() {
 		"TOOL_MODIFICATION_POWER_CAPACITY_25",
 		"tool/modification/power_capacity_25",
 		text("Small Auxiliary battery"),
-		ofChildren(text("Increases power storage by ", HE_MEDIUM_GRAY), PowerMachines.prefixComponent, text(25000, GREEN))
+		ofChildren(text("Increases power storage by ", HE_MEDIUM_GRAY), powerPrefix, text(25000, GREEN))
 	) { ItemModRegistry.POWER_CAPACITY_25 })
 	val POWER_CAPACITY_50: ModificationItem = register(ModificationItem(
 		"TOOL_MODIFICATION_POWER_CAPACITY_50",
 		"tool/modification/power_capacity_50",
 		text("Medium Auxiliary battery"),
-		ofChildren(text("Increases power storage by ", HE_MEDIUM_GRAY), PowerMachines.prefixComponent, text(50000, GREEN))
+		ofChildren(text("Increases power storage by ", HE_MEDIUM_GRAY), powerPrefix, text(50000, GREEN))
 	) { ItemModRegistry.POWER_CAPACITY_50 })
 	val AUTO_REPLANT: ModificationItem = register(ModificationItem(
 		"TOOL_MODIFICATION_AUTO_REPLANT",

@@ -1,10 +1,11 @@
 package net.horizonsend.ion.server.features.multiblock.type.printer
 
 import net.horizonsend.ion.server.features.client.display.modular.DisplayHandlers
-import net.horizonsend.ion.server.features.client.display.modular.display.PowerEntityDisplay
-import net.horizonsend.ion.server.features.client.display.modular.display.StatusDisplay
+import net.horizonsend.ion.server.features.client.display.modular.display.PowerEntityDisplayModule
+import net.horizonsend.ion.server.features.client.display.modular.display.StatusDisplayModule
 import net.horizonsend.ion.server.features.multiblock.Multiblock
 import net.horizonsend.ion.server.features.multiblock.entity.PersistentMultiblockData
+import net.horizonsend.ion.server.features.multiblock.entity.type.FurnaceBasedMultiblockEntity
 import net.horizonsend.ion.server.features.multiblock.entity.type.LegacyMultiblockEntity
 import net.horizonsend.ion.server.features.multiblock.entity.type.StatusMultiblockEntity
 import net.horizonsend.ion.server.features.multiblock.entity.type.power.SimplePoweredEntity
@@ -13,11 +14,12 @@ import net.horizonsend.ion.server.features.multiblock.entity.type.ticked.SyncTic
 import net.horizonsend.ion.server.features.multiblock.entity.type.ticked.TickedMultiblockEntityParent
 import net.horizonsend.ion.server.features.multiblock.manager.MultiblockManager
 import net.horizonsend.ion.server.features.multiblock.shape.MultiblockShape
+import net.horizonsend.ion.server.features.multiblock.type.DisplayNameMultilblock
 import net.horizonsend.ion.server.features.multiblock.type.EntityMultiblock
-import net.horizonsend.ion.server.features.multiblock.type.ammo.MissileLoaderMultiblock
 import net.horizonsend.ion.server.miscellaneous.utils.LegacyItemUtils
 import net.horizonsend.ion.server.miscellaneous.utils.isConcretePowder
 import net.horizonsend.ion.server.miscellaneous.utils.isStainedGlass
+import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.Component.text
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.NamedTextColor.GREEN
@@ -28,7 +30,7 @@ import org.bukkit.block.Sign
 import org.bukkit.inventory.FurnaceInventory
 import org.bukkit.inventory.ItemStack
 
-object CarbonProcessorMultiblock : Multiblock(), EntityMultiblock<CarbonProcessorMultiblock.CarbonProcessorEntity> {
+object CarbonProcessorMultiblock : Multiblock(), EntityMultiblock<CarbonProcessorMultiblock.CarbonProcessorEntity>, DisplayNameMultilblock {
 	override val name = "processor"
 
 	override val signText = createSignText(
@@ -37,6 +39,8 @@ object CarbonProcessorMultiblock : Multiblock(), EntityMultiblock<CarbonProcesso
 		line3 = null,
 		line4 = "&7:[''']:"
 	)
+	override val displayName: Component get() = text("Carbon Processor")
+	override val description: Component get() = text("Transforms Concrete Powder into Concrete.")
 
 	override fun MultiblockShape.buildStructure() {
 		z(+0) {
@@ -94,14 +98,14 @@ object CarbonProcessorMultiblock : Multiblock(), EntityMultiblock<CarbonProcesso
 		z: Int,
 		world: World,
 		structureFace: BlockFace
-	) : SimplePoweredEntity(data, MissileLoaderMultiblock, manager, x, y, z, world, structureFace, 30_000), LegacyMultiblockEntity, StatusTickedMultiblockEntity, SyncTickingMultiblockEntity {
+	) : SimplePoweredEntity(data, CarbonProcessorMultiblock, manager, x, y, z, world, structureFace, 30_000), LegacyMultiblockEntity, StatusTickedMultiblockEntity, SyncTickingMultiblockEntity, FurnaceBasedMultiblockEntity {
 		override val tickingManager: TickedMultiblockEntityParent.TickingManager = TickedMultiblockEntityParent.TickingManager(interval = 1)
 		override val statusManager: StatusMultiblockEntity.StatusManager = StatusMultiblockEntity.StatusManager()
 
 		override val displayHandler = DisplayHandlers.newMultiblockSignOverlay(
 			this,
-			PowerEntityDisplay(this, +0.0, +0.0, +0.0, 0.45f),
-			StatusDisplay(statusManager, +0.0, -0.10, +0.0, 0.45f)
+			{ PowerEntityDisplayModule(it, this) },
+			{ StatusDisplayModule(it, statusManager) }
 		).register()
 
 		override fun loadFromSign(sign: Sign) {
@@ -114,7 +118,7 @@ object CarbonProcessorMultiblock : Multiblock(), EntityMultiblock<CarbonProcesso
 
 			val fuel = furnaceInventory.fuel
 
-			if (powerStorage.getPower() < 250) return sleepWithStatus(text("No Power", NamedTextColor.RED), 100)
+			if (powerStorage.getPower() < 100) return sleepWithStatus(text("No Power", NamedTextColor.RED), 100)
 			if (fuel?.type?.isConcretePowder != true) return sleepWithStatus(text("Out of Powder", NamedTextColor.RED), 100)
 
 			val output = getOutput(fuel)
@@ -124,16 +128,10 @@ object CarbonProcessorMultiblock : Multiblock(), EntityMultiblock<CarbonProcesso
 
 			fuel.amount--
 
-			powerStorage.removePower(250)
+			powerStorage.removePower(100)
 
 			sleepWithStatus(text("Working", GREEN), 50)
-
-			val furnace = furnaceInventory.holder ?: return
-
-			furnace.burnTime = Short.MAX_VALUE
-			furnace.cookTime = 50
-
-			furnace.update()
+			setBurningForTicks(50)
 		}
 
 		fun getOutput(inputType: ItemStack): ItemStack {

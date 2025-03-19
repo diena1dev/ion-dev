@@ -32,6 +32,7 @@ import net.horizonsend.ion.server.features.space.spacestations.CachedPlayerSpace
 import net.horizonsend.ion.server.features.space.spacestations.CachedSettlementSpaceStation
 import net.horizonsend.ion.server.features.space.spacestations.CachedSpaceStation
 import net.horizonsend.ion.server.features.space.spacestations.SpaceStationCache
+import net.horizonsend.ion.server.features.starship.Interdiction
 import net.horizonsend.ion.server.features.starship.LastPilotedStarship
 import net.horizonsend.ion.server.features.starship.PilotedStarships
 import net.horizonsend.ion.server.features.starship.active.ActiveControlledStarship
@@ -53,7 +54,6 @@ import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.NamedTextColor.AQUA
 import net.kyori.adventure.text.format.NamedTextColor.BLUE
 import net.kyori.adventure.text.format.NamedTextColor.DARK_AQUA
-import net.kyori.adventure.text.format.NamedTextColor.DARK_GRAY
 import net.kyori.adventure.text.format.NamedTextColor.DARK_GREEN
 import net.kyori.adventure.text.format.NamedTextColor.DARK_PURPLE
 import net.kyori.adventure.text.format.NamedTextColor.DARK_RED
@@ -135,7 +135,7 @@ object ContactsSidebar {
     private fun playerRelationColor(player: Player, otherController: Controller): NamedTextColor {
         when (otherController) {
             is NoOpController -> return GRAY
-            is AIController -> return DARK_GRAY
+            is AIController -> return GRAY
             is PlayerController -> {
                 val viewerNation = PlayerCache.getIfOnline(player)?.nationOid ?: return GRAY
                 val otherNation = PlayerCache.getIfOnline(otherController.player)?.nationOid ?: return GRAY
@@ -422,7 +422,7 @@ object ContactsSidebar {
                             autoTurretTextComponent(currentStarship, starship)
                         } else empty(),
                         if (starship.isInterdicting) {
-                            interdictionTextComponent(interdictionDistance, starship.balancing.interdictionRange, true)
+                            interdictionTextComponent(interdictionDistance, Interdiction.starshipInterdictionRangeEquation(starship).toInt(), true)
                         } else empty(),
                         if (inFleet) {
                             if (fleet != null && otherPlayer != null && fleet.leaderId == otherPlayer.uniqueId) {
@@ -448,9 +448,9 @@ object ContactsSidebar {
             priority = false,
             prefix = constructPrefixTextComponent(SidebarIcon.X_CROSS_ICON.text, DARK_RED),
             suffix = empty(),
-            heading = constructHeadingTextComponent("XX", DARK_GRAY),
-            height = constructHeightTextComponent("XXX", DARK_GRAY),
-            distance = constructDistanceTextComponent("XXXX", DARK_GRAY),
+            heading = constructHeadingTextComponent("XX", GRAY),
+            height = constructHeightTextComponent("XXX", GRAY),
+            distance = constructDistanceTextComponent("XXXX", GRAY),
             distanceInt = contactsData.distanceInt,
             padding = text(repeatString(" ", 1))
 
@@ -479,20 +479,20 @@ object ContactsSidebar {
             val priority = getPriority(player, nameString)
             val color = if (priority && priorityColorChange()) WHITE else when (colorSetting) {
                 ContactsColoring.BY_DISTANCE.ordinal -> distanceColor(distance)
-                ContactsColoring.BY_RELATION.ordinal -> GRAY
+                ContactsColoring.BY_RELATION.ordinal -> WHITE
                 ContactsColoring.MIXED.ordinal -> distanceColor(distance)
                 else -> distanceColor(distance)
             }
             val prefixColor = when (colorSetting) {
                 ContactsColoring.BY_DISTANCE.ordinal -> YELLOW
                 ContactsColoring.BY_RELATION.ordinal -> distanceColor(distance)
-                ContactsColoring.MIXED.ordinal -> GRAY
+                ContactsColoring.MIXED.ordinal -> WHITE
                 else -> YELLOW
             }
             val nameColor = when (colorSetting) {
                 ContactsColoring.BY_DISTANCE.ordinal -> distanceColor(distance)
-                ContactsColoring.BY_RELATION.ordinal -> GRAY
-                ContactsColoring.MIXED.ordinal -> GRAY
+                ContactsColoring.BY_RELATION.ordinal -> WHITE
+                ContactsColoring.MIXED.ordinal -> WHITE
                 else -> distanceColor(distance)
             }
             val name = text(nameString, nameColor)
@@ -534,20 +534,20 @@ object ContactsSidebar {
             val priority = getPriority(player, nameString)
             val color = if (priority && priorityColorChange()) WHITE else when (colorSetting) {
                 ContactsColoring.BY_DISTANCE.ordinal -> distanceColor(distance)
-                ContactsColoring.BY_RELATION.ordinal -> GRAY
+                ContactsColoring.BY_RELATION.ordinal -> WHITE
                 ContactsColoring.MIXED.ordinal -> distanceColor(distance)
                 else -> distanceColor(distance)
             }
             val prefixColor = when (colorSetting) {
                 ContactsColoring.BY_DISTANCE.ordinal -> DARK_AQUA
                 ContactsColoring.BY_RELATION.ordinal -> distanceColor(distance)
-                ContactsColoring.MIXED.ordinal -> GRAY
+                ContactsColoring.MIXED.ordinal -> WHITE
                 else -> DARK_AQUA
             }
             val nameColor = if (priority && priorityColorChange()) WHITE else when (colorSetting) {
                 ContactsColoring.BY_DISTANCE.ordinal -> distanceColor(distance)
-                ContactsColoring.BY_RELATION.ordinal -> GRAY
-                ContactsColoring.MIXED.ordinal -> GRAY
+                ContactsColoring.BY_RELATION.ordinal -> WHITE
+                ContactsColoring.MIXED.ordinal -> WHITE
                 else -> distanceColor(distance)
             }
             val name = text(nameString, nameColor)
@@ -595,20 +595,20 @@ object ContactsSidebar {
             val priority = getPriority(player, nameString)
             val color = if (priority && priorityColorChange()) WHITE else when (colorSetting) {
                 ContactsColoring.BY_DISTANCE.ordinal -> distanceColor(distance)
-                ContactsColoring.BY_RELATION.ordinal -> GRAY
+                ContactsColoring.BY_RELATION.ordinal -> WHITE
                 ContactsColoring.MIXED.ordinal -> distanceColor(distance)
                 else -> distanceColor(distance)
             }
             val prefixColor = when (colorSetting) {
                 ContactsColoring.BY_DISTANCE.ordinal -> YELLOW
                 ContactsColoring.BY_RELATION.ordinal -> distanceColor(distance)
-                ContactsColoring.MIXED.ordinal -> GRAY
+                ContactsColoring.MIXED.ordinal -> WHITE
                 else -> YELLOW
             }
             val nameColor = if (priority && priorityColorChange()) WHITE else when (colorSetting) {
                 ContactsColoring.BY_DISTANCE.ordinal -> distanceColor(distance)
-                ContactsColoring.BY_RELATION.ordinal -> GRAY
-                ContactsColoring.MIXED.ordinal -> GRAY
+                ContactsColoring.BY_RELATION.ordinal -> WHITE
+                ContactsColoring.MIXED.ordinal -> WHITE
                 else -> distanceColor(distance)
             }
             val name = text(nameString, nameColor)
@@ -656,20 +656,20 @@ object ContactsSidebar {
             val priority = getPriority(player, nameString)
             val color = if (priority && priorityColorChange()) WHITE else when (colorSetting) {
                 ContactsColoring.BY_DISTANCE.ordinal -> distanceColor(distance)
-                ContactsColoring.BY_RELATION.ordinal -> GRAY
+                ContactsColoring.BY_RELATION.ordinal -> WHITE
                 ContactsColoring.MIXED.ordinal -> distanceColor(distance)
                 else -> distanceColor(distance)
             }
             val prefixColor = when (colorSetting) {
                 ContactsColoring.BY_DISTANCE.ordinal -> BLUE
                 ContactsColoring.BY_RELATION.ordinal -> distanceColor(distance)
-                ContactsColoring.MIXED.ordinal -> GRAY
+                ContactsColoring.MIXED.ordinal -> WHITE
                 else -> BLUE
             }
             val nameColor = if (priority && priorityColorChange()) WHITE else when (colorSetting) {
                 ContactsColoring.BY_DISTANCE.ordinal -> distanceColor(distance)
-                ContactsColoring.BY_RELATION.ordinal -> GRAY
-                ContactsColoring.MIXED.ordinal -> GRAY
+                ContactsColoring.BY_RELATION.ordinal -> WHITE
+                ContactsColoring.MIXED.ordinal -> WHITE
                 else -> distanceColor(distance)
             }
             val name = text(nameString, nameColor)
@@ -819,20 +819,20 @@ object ContactsSidebar {
 
             val color = when (colorSetting) {
                 ContactsColoring.BY_DISTANCE.ordinal -> distanceColor(distance)
-                ContactsColoring.BY_RELATION.ordinal -> GRAY
+                ContactsColoring.BY_RELATION.ordinal -> WHITE
                 ContactsColoring.MIXED.ordinal -> distanceColor(distance)
                 else -> distanceColor(distance)
             }
             val prefixColor = when (colorSetting) {
                 ContactsColoring.BY_DISTANCE.ordinal -> DARK_PURPLE
                 ContactsColoring.BY_RELATION.ordinal -> distanceColor(distance)
-                ContactsColoring.MIXED.ordinal -> GRAY
+                ContactsColoring.MIXED.ordinal -> WHITE
                 else -> DARK_PURPLE
             }
             val nameColor = when (colorSetting) {
                 ContactsColoring.BY_DISTANCE.ordinal -> distanceColor(distance)
-                ContactsColoring.BY_RELATION.ordinal -> GRAY
-                ContactsColoring.MIXED.ordinal -> GRAY
+                ContactsColoring.BY_RELATION.ordinal -> WHITE
+                ContactsColoring.MIXED.ordinal -> WHITE
                 else -> distanceColor(distance)
             }
 

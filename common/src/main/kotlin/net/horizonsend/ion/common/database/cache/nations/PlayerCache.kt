@@ -93,6 +93,11 @@ abstract class AbstractPlayerCache : ManualCache() {
 		var enableCombatTimerAlerts: Boolean = true,
 		var hitmarkerOnHull: Boolean = true,
 
+		var shortenChatChannels: Boolean = false,
+
+		var hideUserPrefixes: Boolean = false,
+		var hideGlobalPrefixes: Boolean = false,
+
 		var blockedPlayerIDs: Set<SLPlayerId> = setOf(),
 	)
 
@@ -719,6 +724,9 @@ abstract class AbstractPlayerCache : ManualCache() {
 			soundCruiseIndicator = data.soundCruiseIndicator,
 			enableCombatTimerAlerts = data.enableCombatTimerAlerts,
 			hitmarkerOnHull = data.hitmarkerOnHull,
+			shortenChatChannels = data.shortenChatChannels,
+			hideUserPrefixes = data.hideUserPrefixes,
+			hideGlobalPrefixes = data.hideGlobalPrefixes
 		)
 	}
 

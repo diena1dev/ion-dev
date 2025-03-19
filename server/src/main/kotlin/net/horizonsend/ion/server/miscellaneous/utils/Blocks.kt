@@ -44,7 +44,7 @@ fun getBlockDataSafe(world: World, x: Int, y: Int, z: Int, loadChunks: Boolean =
  * Gets the block state at the given location if loaded. Sync only.
  */
 fun getBlockIfLoaded(world: World, x: Int, y: Int, z: Int): Block? {
-	if (y < 0 || y > world.maxHeight) {
+	if (y < 0 || y >= world.maxHeight) {
 		return null
 	}
 
@@ -128,11 +128,21 @@ val BlockFace.leftFace: BlockFace
 		else -> error("Unsupported direction $this")
 	}
 
-val BlockFace.axis: Axis
+val BlockFace.axis: Axis get() = this.axisOrNull ?: error("Unsupported axis for BlockFace: $this")
+
+val BlockFace.axisOrNull: Axis?
 	get() = when (this) {
 		BlockFace.NORTH, BlockFace.SOUTH -> Axis.Z
 		BlockFace.EAST, BlockFace.WEST -> Axis.X
 		BlockFace.UP, BlockFace.DOWN -> Axis.Y
+		else -> null
+	}
+
+val Axis.faces: Pair<BlockFace, BlockFace>
+	get() = when (this) {
+		Axis.Z -> BlockFace.NORTH to BlockFace.SOUTH
+		Axis.X -> BlockFace.EAST to BlockFace.WEST
+		Axis.Y -> BlockFace.UP to BlockFace.DOWN
 		else -> error("Unsupported axis for BlockFace: $this")
 	}
 

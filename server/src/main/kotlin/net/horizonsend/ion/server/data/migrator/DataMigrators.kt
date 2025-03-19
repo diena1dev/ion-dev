@@ -1,5 +1,6 @@
 package net.horizonsend.ion.server.data.migrator
 
+import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import io.papermc.paper.datacomponent.DataComponentTypes
 import io.papermc.paper.datacomponent.item.ItemAttributeModifiers
 import net.horizonsend.ion.server.IonServerComponent
@@ -7,17 +8,22 @@ import net.horizonsend.ion.server.data.migrator.types.item.MigratorResult
 import net.horizonsend.ion.server.data.migrator.types.item.legacy.LegacyCustomItemMigrator
 import net.horizonsend.ion.server.data.migrator.types.item.modern.migrator.AspectMigrator
 import net.horizonsend.ion.server.data.migrator.types.item.modern.migrator.LegacyNameFixer
+import net.horizonsend.ion.server.data.migrator.types.item.modern.migrator.ReplacementMigrator
 import net.horizonsend.ion.server.features.custom.items.CustomItemRegistry
 import net.horizonsend.ion.server.features.custom.items.CustomItemRegistry.customItem
 import net.horizonsend.ion.server.features.custom.items.component.CustomComponentTypes.Companion.MOD_MANAGER
-import net.horizonsend.ion.server.features.transport.old.pipe.Pipes
 import net.horizonsend.ion.server.miscellaneous.registrations.legacy.LegacyPowerArmorModule
 import net.horizonsend.ion.server.miscellaneous.registrations.persistence.NamespacedKeys
+import net.horizonsend.ion.server.miscellaneous.utils.isPipedInventory
 import org.bukkit.Chunk
 import org.bukkit.Material
+import org.bukkit.attribute.Attribute
+import org.bukkit.attribute.AttributeModifier
+import org.bukkit.craftbukkit.inventory.CraftBlockInventoryHolder
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
+import org.bukkit.event.inventory.InventoryOpenEvent
 import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.world.ChunkLoadEvent
 import org.bukkit.inventory.Inventory
@@ -227,6 +233,7 @@ object DataMigrators : IonServerComponent() {
 
 					val new = CustomItemRegistry.POWER_ARMOR_HELMET.constructItemStack()
 					CustomItemRegistry.POWER_ARMOR_HELMET.getComponent(MOD_MANAGER).setMods(new, CustomItemRegistry.POWER_ARMOR_HELMET, oldMods.toTypedArray())
+					old.getData(DataComponentTypes.DYED_COLOR)?.let { color -> new.setData(DataComponentTypes.DYED_COLOR, color) }
 					MigratorResult.Replacement(new)
 				}
 			))
@@ -247,6 +254,7 @@ object DataMigrators : IonServerComponent() {
 
 					val new = CustomItemRegistry.POWER_ARMOR_CHESTPLATE.constructItemStack()
 					CustomItemRegistry.POWER_ARMOR_CHESTPLATE.getComponent(MOD_MANAGER).setMods(new, CustomItemRegistry.POWER_ARMOR_CHESTPLATE, oldMods.toTypedArray())
+					old.getData(DataComponentTypes.DYED_COLOR)?.let { color -> new.setData(DataComponentTypes.DYED_COLOR, color) }
 					MigratorResult.Replacement(new)
 				}
 			))
@@ -267,6 +275,7 @@ object DataMigrators : IonServerComponent() {
 
 					val new = CustomItemRegistry.POWER_ARMOR_LEGGINGS.constructItemStack()
 					CustomItemRegistry.POWER_ARMOR_LEGGINGS.getComponent(MOD_MANAGER).setMods(new, CustomItemRegistry.POWER_ARMOR_LEGGINGS, oldMods.toTypedArray())
+					old.getData(DataComponentTypes.DYED_COLOR)?.let { color -> new.setData(DataComponentTypes.DYED_COLOR, color) }
 					MigratorResult.Replacement(new)
 				}
 			))
@@ -287,6 +296,7 @@ object DataMigrators : IonServerComponent() {
 
 					val new = CustomItemRegistry.POWER_ARMOR_BOOTS.constructItemStack()
 					CustomItemRegistry.POWER_ARMOR_BOOTS.getComponent(MOD_MANAGER).setMods(new, CustomItemRegistry.POWER_ARMOR_BOOTS, oldMods.toTypedArray())
+					old.getData(DataComponentTypes.DYED_COLOR)?.let { color -> new.setData(DataComponentTypes.DYED_COLOR, color) }
 					MigratorResult.Replacement(new)
 				}
 			))
@@ -749,6 +759,148 @@ object DataMigrators : IonServerComponent() {
 			.addMigrator(AspectMigrator.fixModel(CustomItemRegistry.CIRCUITRY))
 			.build()
 		)
+
+		registerDataVersion(DataVersion
+			.builder(3)
+			.addMigrator(AspectMigrator
+				.builder(CustomItemRegistry.STANDARD_MAGAZINE)
+				.pullModel(CustomItemRegistry.STANDARD_MAGAZINE)
+				.pullLore(CustomItemRegistry.STANDARD_MAGAZINE)
+				.pullName(CustomItemRegistry.STANDARD_MAGAZINE)
+				.build()
+			)
+			.addMigrator(AspectMigrator
+				.builder(CustomItemRegistry.SPECIAL_MAGAZINE)
+				.pullModel(CustomItemRegistry.SPECIAL_MAGAZINE)
+				.pullLore(CustomItemRegistry.SPECIAL_MAGAZINE)
+				.pullName(CustomItemRegistry.SPECIAL_MAGAZINE)
+				.build()
+			)
+			.addMigrator(AspectMigrator.fixModel(CustomItemRegistry.SMOKE_GRENADE))
+			.addMigrator(AspectMigrator.fixModel(CustomItemRegistry.DETONATOR))
+			.build()
+		)
+
+		registerDataVersion(DataVersion.builder(4).build())
+
+		registerDataVersion(DataVersion
+			.builder(5)
+			.addMigrator(ReplacementMigrator(
+				CustomItemRegistry.GUN_BARREL, CustomItemRegistry.CIRCUITRY,
+				CustomItemRegistry.PISTOL_RECEIVER, CustomItemRegistry.RIFLE_RECEIVER,
+				CustomItemRegistry.SMB_RECEIVER, CustomItemRegistry.SNIPER_RECEIVER,
+				CustomItemRegistry.SHOTGUN_RECEIVER, CustomItemRegistry.CANNON_RECEIVER
+			))
+			.addMigrator(ReplacementMigrator(
+				CustomItemRegistry.ALUMINUM_INGOT, CustomItemRegistry.RAW_ALUMINUM, CustomItemRegistry.ALUMINUM_ORE,
+				CustomItemRegistry.ALUMINUM_BLOCK, CustomItemRegistry.RAW_ALUMINUM_BLOCK,
+				CustomItemRegistry.CHETHERITE, CustomItemRegistry.CHETHERITE_ORE, CustomItemRegistry.CHETHERITE_BLOCK,
+				CustomItemRegistry.TITANIUM_INGOT, CustomItemRegistry.RAW_TITANIUM, CustomItemRegistry.TITANIUM_ORE,
+				CustomItemRegistry.TITANIUM_BLOCK, CustomItemRegistry.RAW_TITANIUM_BLOCK,
+				CustomItemRegistry.URANIUM, CustomItemRegistry.RAW_URANIUM, CustomItemRegistry.URANIUM_ORE,
+				CustomItemRegistry.URANIUM_BLOCK, CustomItemRegistry.RAW_URANIUM_BLOCK
+			))
+			.addMigrator(ReplacementMigrator(
+				CustomItemRegistry.REACTIVE_COMPONENT, CustomItemRegistry.REACTIVE_HOUSING, CustomItemRegistry.REACTIVE_PLATING,
+				CustomItemRegistry.REACTIVE_CHASSIS, CustomItemRegistry.REACTIVE_MEMBRANE, CustomItemRegistry.REACTIVE_ASSEMBLY,
+				CustomItemRegistry.FABRICATED_ASSEMBLY, CustomItemRegistry.CIRCUIT_BOARD, CustomItemRegistry.MOTHERBOARD,
+				CustomItemRegistry.REACTOR_CONTROL
+			))
+			.addMigrator(ReplacementMigrator(
+				CustomItemRegistry.SUPERCONDUCTOR, CustomItemRegistry.SUPERCONDUCTOR_BLOCK, CustomItemRegistry.SUPERCONDUCTOR_CORE
+			))
+			.addMigrator(ReplacementMigrator(
+				CustomItemRegistry.STEEL_INGOT, CustomItemRegistry.STEEL_BLOCK, CustomItemRegistry.STEEL_PLATE,
+				CustomItemRegistry.STEEL_CHASSIS, CustomItemRegistry.STEEL_MODULE, CustomItemRegistry.STEEL_ASSEMBLY,
+				CustomItemRegistry.REINFORCED_FRAME, CustomItemRegistry.REACTOR_FRAME
+			))
+			.addMigrator(ReplacementMigrator(
+				CustomItemRegistry.UNLOADED_SHELL, CustomItemRegistry.LOADED_SHELL, CustomItemRegistry.UNCHARGED_SHELL,
+				CustomItemRegistry.CHARGED_SHELL, CustomItemRegistry.ARSENAL_MISSILE, CustomItemRegistry.UNLOADED_ARSENAL_MISSILE,
+				CustomItemRegistry.ACTIVATED_ARSENAL_MISSILE
+			))
+			.build()
+		)
+
+		registerDataVersion(DataVersion.builder(6)
+			.addMigrator(AspectMigrator
+				.builder(CustomItemRegistry.POWER_ARMOR_BOOTS)
+				.addConsumer {
+					it.setData(DataComponentTypes.ATTRIBUTE_MODIFIERS, ItemAttributeModifiers
+						.itemAttributes()
+						.addModifier(
+							Attribute.ARMOR,
+							AttributeModifier(
+								NamespacedKeys.key(CustomItemRegistry.POWER_ARMOR_BOOTS.identifier),
+								2.0,
+								AttributeModifier.Operation.ADD_NUMBER,
+								CustomItemRegistry.POWER_ARMOR_BOOTS.slot.group
+							)
+						)
+						.build()
+					)
+				}
+				.build()
+			)
+			.addMigrator(AspectMigrator
+				.builder(CustomItemRegistry.POWER_ARMOR_LEGGINGS)
+				.addConsumer {
+					it.setData(DataComponentTypes.ATTRIBUTE_MODIFIERS, ItemAttributeModifiers
+						.itemAttributes()
+						.addModifier(
+							Attribute.ARMOR,
+							AttributeModifier(
+								NamespacedKeys.key(CustomItemRegistry.POWER_ARMOR_LEGGINGS.identifier),
+								2.0,
+								AttributeModifier.Operation.ADD_NUMBER,
+								CustomItemRegistry.POWER_ARMOR_LEGGINGS.slot.group
+							)
+						)
+						.build()
+					)
+				}
+				.build()
+			)
+			.addMigrator(AspectMigrator
+				.builder(CustomItemRegistry.POWER_ARMOR_CHESTPLATE)
+				.addConsumer {
+					it.setData(DataComponentTypes.ATTRIBUTE_MODIFIERS, ItemAttributeModifiers
+						.itemAttributes()
+						.addModifier(
+							Attribute.ARMOR,
+							AttributeModifier(
+								NamespacedKeys.key(CustomItemRegistry.POWER_ARMOR_CHESTPLATE.identifier),
+								2.0,
+								AttributeModifier.Operation.ADD_NUMBER,
+								CustomItemRegistry.POWER_ARMOR_CHESTPLATE.slot.group
+							)
+						)
+						.build()
+					)
+				}
+				.build()
+			)
+			.addMigrator(AspectMigrator
+				.builder(CustomItemRegistry.POWER_ARMOR_HELMET)
+				.addConsumer {
+					it.setData(DataComponentTypes.ATTRIBUTE_MODIFIERS, ItemAttributeModifiers
+						.itemAttributes()
+						.addModifier(
+							Attribute.ARMOR,
+							AttributeModifier(
+								NamespacedKeys.key(CustomItemRegistry.POWER_ARMOR_HELMET.identifier),
+								2.0,
+								AttributeModifier.Operation.ADD_NUMBER,
+								CustomItemRegistry.POWER_ARMOR_HELMET.slot.group
+							)
+						)
+						.build()
+					)
+				}
+				.build()
+			)
+			.build()
+		)
 	}
 
 	private fun registerDataVersion(dataVersion: DataVersion) {
@@ -765,7 +917,7 @@ object DataMigrators : IonServerComponent() {
 
 		for (x in 0..15) for (y in chunk.world.minHeight until chunk.world.maxHeight) for (z in 0..15) {
 			val type = snapshot.getBlockType(x, y, z)
-			if (Pipes.isPipedInventory(type)) {
+			if (type.isPipedInventory) {
 				val state = chunk.getBlock(x, y, z).state as InventoryHolder
 				migrateInventory(state.inventory, toApply)
 			}
@@ -775,20 +927,22 @@ object DataMigrators : IonServerComponent() {
 	}
 
 	fun migrate(player: Player) {
-		val playerVersion = player.persistentDataContainer.getOrDefault(NamespacedKeys.DATA_VERSION, PersistentDataType.INTEGER, 0)
+		val playerVersion = player.persistentDataContainer.getOrDefault(NamespacedKeys.PLAYER_DATA_VERSION, PersistentDataType.INTEGER, 0)
 		if (playerVersion == lastDataVersion) return
 
 		log.info("Migrating ${player.name}'s inventory from $playerVersion to $lastDataVersion")
 		migrateInventory(player.inventory, getVersions(playerVersion).apply { log.info("Applying $size versions") })
 
-		player.persistentDataContainer.set(NamespacedKeys.DATA_VERSION, PersistentDataType.INTEGER, lastDataVersion)
+		player.persistentDataContainer.set(NamespacedKeys.PLAYER_DATA_VERSION, PersistentDataType.INTEGER, lastDataVersion)
 	}
 
-	private fun getVersions(dataVersion: Int): List<DataVersion> {
+	fun getVersions(dataVersion: Int): List<DataVersion> {
 		return dataVersions.subList(dataVersion + 1 /* Inclusive */, lastDataVersion + 1 /* Exclusive */)
 	}
 
-	private fun migrateInventory(inventory: Inventory, versions: List<DataVersion>) {
+	fun migrateInventory(inventory: Inventory, versions: List<DataVersion>) {
+		if (inventory.holder is CraftBlockInventoryHolder || inventory.holder is ChestGui || inventory.holder == null) return
+
 		for (dataVersion in versions) {
 			dataVersion.migrateInventory(inventory)
 		}
@@ -802,5 +956,10 @@ object DataMigrators : IonServerComponent() {
 	@EventHandler(priority = EventPriority.MONITOR)
 	fun onChunkLoad(event: ChunkLoadEvent) {
 		migrate(event.chunk)
+	}
+
+	@EventHandler(priority = EventPriority.MONITOR)
+	fun onOpenInventory(event: InventoryOpenEvent) {
+		migrateInventory(event.inventory, getVersions(0))
 	}
 }

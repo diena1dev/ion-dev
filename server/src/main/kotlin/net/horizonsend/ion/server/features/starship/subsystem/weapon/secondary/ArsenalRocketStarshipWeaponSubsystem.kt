@@ -3,6 +3,7 @@ package net.horizonsend.ion.server.features.starship.subsystem.weapon.secondary
 import net.horizonsend.ion.server.configuration.StarshipWeapons
 import net.horizonsend.ion.server.features.custom.items.CustomItemRegistry
 import net.horizonsend.ion.server.features.multiblock.type.starship.weapon.heavy.ArsenalRocketStarshipWeaponMultiblock
+import net.horizonsend.ion.server.features.multiblock.type.starship.weapon.heavy.TopArsenalStarshipWeaponMultiblock
 import net.horizonsend.ion.server.features.starship.active.ActiveStarship
 import net.horizonsend.ion.server.features.starship.damager.Damager
 import net.horizonsend.ion.server.features.starship.subsystem.DirectionalSubsystem
@@ -73,13 +74,19 @@ class ArsenalRocketStarshipWeaponSubsystem(
 	}
 	override fun manualFire(shooter: Damager, dir: Vector, target: Vector) {
 		val origin = getFirePos().toLocation(starship.world)
-		val projectile = ArsenalRocketProjectile(starship, getName(), origin, dir, shooter, upOrDown)
+		val projectile = ArsenalRocketProjectile(starship, getName(), origin, dir, shooter, upOrDown, TopArsenalStarshipWeaponMultiblock.damageType)
 		projectile.fire()
 	}
 
-	override fun getRequiredAmmo(): ItemStack = CustomItemRegistry.ARSENAL_MISSILE.constructItemStack()
-
 	override fun getName(): Component {
 		return Component.text("Arsenal Rocket")
+	}
+
+	override fun isRequiredAmmo(item: ItemStack): Boolean {
+		return requireCustomItem(item, CustomItemRegistry.ARSENAL_MISSILE, 1)
+	}
+
+	override fun consumeAmmo(itemStack: ItemStack) {
+		consumeItem(itemStack, 1)
 	}
 }

@@ -9,13 +9,14 @@ import org.bukkit.Material
 import org.bukkit.block.BlockFace
 
 object AIPhaserStarshipWeaponMultiblock : SignlessStarshipWeaponMultiblock<AIPhaserWeaponSystem>() {
+	override val key: String = "phaser"
 	override fun MultiblockShape.buildStructure() {
 		y(+0) {
 			z(+0..+4 step 2) {
 				x(+0).anyCopperVariant()
 			}
 			z(+1..+3 step 2) {
-				x(+0).type(Material.BELL)
+				x(+0).anyFroglight()
 			}
 			z(+5) { x(+0).anyDoubleSlab() }
 			z(+6) { x(+0).hopper() }

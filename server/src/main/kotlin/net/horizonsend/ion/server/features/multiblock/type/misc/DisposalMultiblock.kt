@@ -10,8 +10,10 @@ import net.horizonsend.ion.server.features.multiblock.entity.type.ticked.SyncTic
 import net.horizonsend.ion.server.features.multiblock.entity.type.ticked.TickedMultiblockEntityParent
 import net.horizonsend.ion.server.features.multiblock.manager.MultiblockManager
 import net.horizonsend.ion.server.features.multiblock.shape.MultiblockShape
+import net.horizonsend.ion.server.features.multiblock.type.DisplayNameMultilblock
 import net.horizonsend.ion.server.features.multiblock.type.EntityMultiblock
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.Component.text
 import net.kyori.adventure.text.format.NamedTextColor
 import org.bukkit.Material
 import org.bukkit.World
@@ -19,11 +21,11 @@ import org.bukkit.block.BlockFace
 import org.bukkit.block.Sign
 import kotlin.math.roundToInt
 
-abstract class AbstractDisposalMultiblock : Multiblock(), EntityMultiblock<AbstractDisposalMultiblock.DisposalMultiblockEntity> {
+abstract class AbstractDisposalMultiblock : Multiblock(), EntityMultiblock<AbstractDisposalMultiblock.DisposalMultiblockEntity>, DisplayNameMultilblock {
 	override val name = "incinerator"
 
 	override var signText: Array<Component?> = arrayOf(
-		Component.text("Incinerator").color(NamedTextColor.RED),
+		text("Incinerator").color(NamedTextColor.RED),
 		null,
 		null,
 		null
@@ -31,6 +33,8 @@ abstract class AbstractDisposalMultiblock : Multiblock(), EntityMultiblock<Abstr
 
 	private val powerConsumed = 0.5
 	abstract val mirrored: Boolean
+
+	override val description: Component get() = text("Destroys all items inserted into the attached inventory.")
 
 	override fun MultiblockShape.buildStructure() {
 		z(+0) {
@@ -102,11 +106,11 @@ abstract class AbstractDisposalMultiblock : Multiblock(), EntityMultiblock<Abstr
 		override fun tick() {
 			val inventory = getInventory(if (this.multiblock.mirrored) 1 else -1, -1, 0) ?: return
 			val power = powerStorage.getPower()
-			if (power == 0) return tickingManager.sleep(20)
+			if (power == 0) return tickingManager.sleepForTicks(20)
 
 			var amountToClear = 0
 
-			if (inventory.isEmpty) return tickingManager.sleep(50)
+			if (inventory.isEmpty) return tickingManager.sleepForTicks(50)
 
 			// Clear while checking for power
 			for (i in 0 until inventory.size) {
@@ -127,8 +131,10 @@ abstract class AbstractDisposalMultiblock : Multiblock(), EntityMultiblock<Abstr
 
 object DisposalMultiblock : AbstractDisposalMultiblock() {
 	override val mirrored = false
+	override val displayName: Component = text("Incinerator${if (mirrored) "(Mirrored)" else ""}")
 }
 
 object DisposalMultiblockMirrored : AbstractDisposalMultiblock() {
 	override val mirrored = true
+	override val displayName: Component = text("Incinerator${if (mirrored) " (Mirrored)" else ""}")
 }

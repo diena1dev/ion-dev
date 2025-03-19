@@ -10,7 +10,10 @@ object NamespacedKeys {
 	val Y = key("y")
 	val Z = key("z")
 
+	val BLOCK_KEY = key("block_key")
+
 	val AXIS = key("axis")
+	val ROTATION = key("rotation")
 
 	val UP_DOWN = key("up_down")
 	val LEFT_RIGHT = key("left_right")
@@ -57,7 +60,7 @@ object NamespacedKeys {
 
 	val SPLITTER_DIRECTION = key("splitter_direction")
 	val USER = key("user")
-	val USER_NAME = key("user")
+	val USER_NAME = key("user_name")
 
 	@Deprecated("") val ORE_CHECK = key("oreCheck")
 
@@ -71,6 +74,7 @@ object NamespacedKeys {
 	val ORE_REPLACED_INDEXES = key("ore_replaced_indexes")
 	val ORE_REPLACED = key("ore_replaced")
 
+	val PLAYER_DATA_VERSION = key("player_data_version")
 	val DATA_VERSION = key("data_version")
 	val BLOCKS_TRAVELED = key("blocks_traveled")
 	val HYPERSPACE_BLOCKS_TRAVELED = key("hyperspace_blocks_traveled")
@@ -78,13 +82,20 @@ object NamespacedKeys {
 	val TOOL_MODIFICATIONS = key("tool_modifications")
 
 	val FORBIDDEN_BLOCKS = key("forbidden_blocks")
+	val CARGO_CRATE = key("cargo_crate")
 
 	val POWER = key("power")
 	val GAS = key("Gas")
 
+	val SERIALIZATION_TYPE = key("serialization_type")
+	val META_DATA = key("meta_data")
+
+	val CHUNK_FILTER_DATA = key("chunk_filter_data")
 	val FILTER_DATA = key("filter_data")
 	val FILTER_TYPE = key("filter_type")
 	val FILTER_ENTRY = key("filter_entry")
+	val SORTING_METHOD = key("sorting_method")
+	val FILTER_META = key("filter_meta")
 	val WHITELIST = key("whitelist")
 
 	val POWER_TRANSPORT = key("power_transport")
@@ -94,7 +105,10 @@ object NamespacedKeys {
 	val STORED_MULTIBLOCK_ENTITIES = key("stored_multiblock_entities")
 	val STORED_MULTIBLOCK_ENTITIES_OLD = key("stored_multiblock_entities_old")
 
-	val EXTRACTORS = key("extractors")
+	val STANDARD_EXTRACTORS = key("standard_extractors")
+	val COMPLEX_EXTRACTORS = key("complex_extractors")
+
+	val SORTING_ORDER = key("sorting_order")
 
 	val NODE_TYPE = key("node_type")
 
@@ -108,6 +122,9 @@ object NamespacedKeys {
 	val TANK_1 = key("tank_1")
 	val TANK_2 = key("tank_2")
 	val TANK_3 = key("tank_3")
+
+	val BLUEPRINT_NAME = key("blueprint_name")
+	val BLUEPRINT_ID = key("blueprint_id")
 
 	fun key(key: String) = NamespacedKey(IonServer, key)
 

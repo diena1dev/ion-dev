@@ -7,6 +7,8 @@ import co.aikar.commands.annotation.Default
 import co.aikar.commands.annotation.Subcommand
 import net.horizonsend.ion.common.database.cache.nations.NationCache
 import net.horizonsend.ion.common.database.cache.nations.SettlementCache
+import net.horizonsend.ion.common.database.schema.misc.SLPlayer
+import net.horizonsend.ion.common.database.uuid
 import net.horizonsend.ion.common.extensions.alertAction
 import net.horizonsend.ion.common.extensions.success
 import net.horizonsend.ion.common.extensions.userError
@@ -14,6 +16,8 @@ import net.horizonsend.ion.common.utils.luckPerms
 import net.horizonsend.ion.server.configuration.ConfigurationFiles
 import net.horizonsend.ion.server.features.cache.PlayerCache
 import net.horizonsend.ion.server.features.progression.PlayerXPLevelCache
+import net.horizonsend.ion.server.features.world.IonWorld.Companion.hasFlag
+import net.horizonsend.ion.server.features.world.WorldFlag
 import net.horizonsend.ion.server.miscellaneous.utils.Tasks
 import net.horizonsend.ion.server.miscellaneous.utils.slPlayerId
 import net.luckperms.api.node.NodeEqualityPredicate
@@ -55,23 +59,15 @@ object NewPlayerProtection : net.horizonsend.ion.server.command.SLCommand(), Lis
 	@CommandPermission("ion.core.protection.removeothers")
 	@Subcommand("other")
 	fun onRemoveProtection(sender: Player, target: String) {
-		val lpUser = lpUserManager.getUser(target)
-
-		if (lpUser == null) {
-			sender.userError(
-				"Unable to remove new player protection from $target, the player does not exist."
-			)
-			return
+		val id = SLPlayer[target]?._id ?: fail { "Unable to remove new player protection from $target, the player does not exist." }
+		lpUserManager.modifyUser(id.uuid) {
+			it.data().run {
+				add(removeProtectionPermission)
+				remove(protectionIndicator)
+			}
+		}.thenAccept { t ->
+			sender.success("Removed new player protection from $target.")
 		}
-
-		lpUser.data().run {
-			add(removeProtectionPermission)
-			remove(protectionIndicator)
-		}
-
-		lpUserManager.saveUser(lpUser)
-
-		sender.success("Removed new player protection from $target.")
 	}
 
 	@CommandPermission("ion.core.protection.giveothers")
@@ -180,7 +176,7 @@ object NewPlayerProtection : net.horizonsend.ion.server.command.SLCommand(), Lis
 	fun onPlayerHurtNoob(event: EntityDamageByEntityEvent) {
 		if (event.entity !is Player || event.damager !is Player) return
 
-		if ((event.entity as Player).hasProtection()) event.damager.alertAction(
+		if ((event.entity as Player).hasProtection() && !event.entity.world.hasFlag(WorldFlag.ARENA)) event.damager.alertAction(
 			"The player you are attacking has new player protection!\n" +
 				"Attacking them for any reason other than self defense is against the rules"
 		)

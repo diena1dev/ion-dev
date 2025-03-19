@@ -11,15 +11,19 @@ import org.bukkit.event.inventory.PrepareItemCraftEvent
 import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.event.player.PlayerSwapHandItemsEvent
 
-class CustomComponentTypes<T : CustomItemComponent, Z : ComponentTypeData<T>> private constructor(val storageType: ComponentType) {
+class CustomComponentTypes<T : CustomItemComponent, Z : ComponentTypeData<T>> private constructor(val storageType: ComponentType, val componentName: String) {
 	fun castData(customItemComponent: ComponentTypeData<*>): Z {
 		@Suppress("UNCHECKED_CAST")
 		return customItemComponent as Z
 	}
 
+	override fun toString(): String {
+		return "CustomItemComponentType[$componentName]"
+	}
+
 	companion object {
 		private inline fun <reified T : CustomItemComponent, Z : ComponentTypeData<T>> newComponentType(type: ComponentType): CustomComponentTypes<T, Z> {
-			return CustomComponentTypes(type)
+			return CustomComponentTypes(type, T::class.simpleName ?: "Anonymous")
 		}
 
 		/**
@@ -50,7 +54,7 @@ class CustomComponentTypes<T : CustomItemComponent, Z : ComponentTypeData<T>> pr
 		/**
 		 * Specifiies a result from smelting this item
 		 **/
-		val SMELTABLE = newComponentType<Smeltable, OnlyOne<Smeltable>>(ComponentType.ONLY_ONE)
+		val MULTIBLOCK_TYPE = newComponentType<StoredMultiblock, OnlyOne<StoredMultiblock>>(ComponentType.ONLY_ONE)
 
 		/**
 		 * General interact listener
@@ -90,6 +94,6 @@ class CustomComponentTypes<T : CustomItemComponent, Z : ComponentTypeData<T>> pr
 		/**
 		 * Recieves ticks, idk what else to say
 		 **/
-		val TICK_RECIEVER = newComponentType<TickRecievierModule, AllowMultiple<TickRecievierModule>>(ComponentType.ALLOW_MULTIPLE)
+		val TICK_RECIEVER = newComponentType<TickReceiverModule, AllowMultiple<TickReceiverModule>>(ComponentType.ALLOW_MULTIPLE)
 	}
 }

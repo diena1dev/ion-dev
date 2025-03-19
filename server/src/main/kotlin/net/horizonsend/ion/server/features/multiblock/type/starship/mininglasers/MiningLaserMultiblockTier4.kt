@@ -1,31 +1,37 @@
 package net.horizonsend.ion.server.features.multiblock.type.starship.mininglasers
 
+import net.horizonsend.ion.common.utils.text.ofChildren
 import net.horizonsend.ion.server.features.multiblock.shape.MultiblockShape
 import net.horizonsend.ion.server.miscellaneous.utils.coordinates.Vec3i
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.Component.text
 import net.kyori.adventure.text.format.NamedTextColor
 import org.bukkit.block.BlockFace
 
 sealed class MiningLaserMultiblockTier4 : MiningLaserMultiblock() {
+    val tierText = text("Tier 4").color(NamedTextColor.AQUA)
     override val signText: Array<Component?> = arrayOf(
-        Component.text("Mining ").color(NamedTextColor.DARK_GRAY)
-            .append(Component.text("Laser").color(NamedTextColor.GREEN)),
-        Component.text("Tier 4").color(NamedTextColor.AQUA),
-        Component.text(""),
-        Component.text("")
+        text("Mining ").color(NamedTextColor.DARK_GRAY)
+            .append(text("Laser").color(NamedTextColor.GREEN)),
+        tierText,
+        text(""),
+        text("")
     )
     override val maxPower: Int = 650000
     override val beamOrigin = Triple(0, 3, 1)
-    override val range: Double = 245.0
-    override val mineRadius = 11
+    final override val range: Double = 245.0
+    final override val mineRadius = 11
     override val beamCount: Int = 10
     override val maxBroken: Int = 11
     override val sound: String = "horizonsend:starship.weapon.mining_laser.t4_loop"
 
     override val tier: Int = 4
+
+    override val description: Component = text("Emits a beam $range blocks long that breaks blocks in a $mineRadius block radius.")
 }
 
 object MiningLaserMultiblockTier4Top : MiningLaserMultiblockTier4() {
+    override val displayName: Component get() = ofChildren(tierText, text(" Mining Laser (Top)"))
     override val side = BlockFace.UP
 
     override fun getFirePointOffset(): Vec3i = Vec3i(+0, +6, +2)
@@ -65,7 +71,7 @@ object MiningLaserMultiblockTier4Top : MiningLaserMultiblockTier4() {
 
             y(+4) {
                 x(-1).anyStairs()
-                x(+0).anyTerracotta()
+                x(+0).terracottaOrDoubleSlab()
                 x(+1).anyStairs()
             }
         }
@@ -113,9 +119,9 @@ object MiningLaserMultiblockTier4Top : MiningLaserMultiblockTier4() {
 
             y(+4) {
                 x(-2).anyStairs()
-                x(-1).anyTerracotta()
+                x(-1).terracottaOrDoubleSlab()
                 x(+0).anyStairs()
-                x(+1).anyTerracotta()
+                x(+1).terracottaOrDoubleSlab()
                 x(+2).anyStairs()
             }
 
@@ -162,11 +168,11 @@ object MiningLaserMultiblockTier4Top : MiningLaserMultiblockTier4() {
             }
 
             y(+4) {
-                x(-2).anyTerracotta()
+                x(-2).terracottaOrDoubleSlab()
                 x(-1).anyStairs()
                 x(+0).enrichedUraniumBlock()
                 x(+1).anyStairs()
-                x(+2).anyTerracotta()
+                x(+2).terracottaOrDoubleSlab()
             }
 
             y(+5) {
@@ -219,9 +225,9 @@ object MiningLaserMultiblockTier4Top : MiningLaserMultiblockTier4() {
 
             y(+4) {
                 x(-2).anyStairs()
-                x(-1).anyTerracotta()
+                x(-1).terracottaOrDoubleSlab()
                 x(+0).anyStairs()
-                x(+1).anyTerracotta()
+                x(+1).terracottaOrDoubleSlab()
                 x(+2).anyStairs()
             }
 
@@ -261,7 +267,7 @@ object MiningLaserMultiblockTier4Top : MiningLaserMultiblockTier4() {
 
             y(+4) {
                 x(-1).anyStairs()
-                x(+0).anyTerracotta()
+                x(+0).terracottaOrDoubleSlab()
                 x(+1).anyStairs()
             }
         }
@@ -269,6 +275,7 @@ object MiningLaserMultiblockTier4Top : MiningLaserMultiblockTier4() {
 }
 
 object MiningLaserMultiblockTier4TopMirrored : MiningLaserMultiblockTier4() {
+    override val displayName: Component get() = ofChildren(tierText, text(" Mining Laser (Top) (Mirrored)"))
     override val side = BlockFace.UP
 
     override fun getFirePointOffset(): Vec3i = Vec3i(+0, +6, -3)
@@ -308,7 +315,7 @@ object MiningLaserMultiblockTier4TopMirrored : MiningLaserMultiblockTier4() {
 
             y(+4) {
                 x(-1).anyStairs()
-                x(+0).anyTerracotta()
+                x(+0).terracottaOrDoubleSlab()
                 x(+1).anyStairs()
             }
         }
@@ -356,9 +363,9 @@ object MiningLaserMultiblockTier4TopMirrored : MiningLaserMultiblockTier4() {
 
             y(+4) {
                 x(-2).anyStairs()
-                x(-1).anyTerracotta()
+                x(-1).terracottaOrDoubleSlab()
                 x(+0).anyStairs()
-                x(+1).anyTerracotta()
+                x(+1).terracottaOrDoubleSlab()
                 x(+2).anyStairs()
             }
 
@@ -405,11 +412,11 @@ object MiningLaserMultiblockTier4TopMirrored : MiningLaserMultiblockTier4() {
             }
 
             y(+4) {
-                x(-2).anyTerracotta()
+                x(-2).terracottaOrDoubleSlab()
                 x(-1).anyStairs()
                 x(+0).enrichedUraniumBlock()
                 x(+1).anyStairs()
-                x(+2).anyTerracotta()
+                x(+2).terracottaOrDoubleSlab()
             }
 
             y(+5) {
@@ -462,9 +469,9 @@ object MiningLaserMultiblockTier4TopMirrored : MiningLaserMultiblockTier4() {
 
             y(+4) {
                 x(-2).anyStairs()
-                x(-1).anyTerracotta()
+                x(-1).terracottaOrDoubleSlab()
                 x(+0).anyStairs()
-                x(+1).anyTerracotta()
+                x(+1).terracottaOrDoubleSlab()
                 x(+2).anyStairs()
             }
 
@@ -504,7 +511,7 @@ object MiningLaserMultiblockTier4TopMirrored : MiningLaserMultiblockTier4() {
 
             y(+4) {
                 x(-1).anyStairs()
-                x(+0).anyTerracotta()
+                x(+0).terracottaOrDoubleSlab()
                 x(+1).anyStairs()
             }
         }
@@ -512,6 +519,7 @@ object MiningLaserMultiblockTier4TopMirrored : MiningLaserMultiblockTier4() {
 }
 
 object MiningLaserMultiblockTier4Bottom : MiningLaserMultiblockTier4() {
+    override val displayName: Component get() = ofChildren(tierText, text(" Mining Laser (Bottom)"))
     override val side = BlockFace.DOWN
 
     override fun getFirePointOffset(): Vec3i = Vec3i(+0, -6, +2)
@@ -551,7 +559,7 @@ object MiningLaserMultiblockTier4Bottom : MiningLaserMultiblockTier4() {
 
             y(-4) {
                 x(-1).anyStairs()
-                x(+0).anyTerracotta()
+                x(+0).terracottaOrDoubleSlab()
                 x(+1).anyStairs()
             }
         }
@@ -599,9 +607,9 @@ object MiningLaserMultiblockTier4Bottom : MiningLaserMultiblockTier4() {
 
             y(-4) {
                 x(-2).anyStairs()
-                x(-1).anyTerracotta()
+                x(-1).terracottaOrDoubleSlab()
                 x(+0).anyStairs()
-                x(+1).anyTerracotta()
+                x(+1).terracottaOrDoubleSlab()
                 x(+2).anyStairs()
             }
 
@@ -648,11 +656,11 @@ object MiningLaserMultiblockTier4Bottom : MiningLaserMultiblockTier4() {
             }
 
             y(-4) {
-                x(-2).anyTerracotta()
+                x(-2).terracottaOrDoubleSlab()
                 x(-1).anyStairs()
                 x(+0).enrichedUraniumBlock()
                 x(+1).anyStairs()
-                x(+2).anyTerracotta()
+                x(+2).terracottaOrDoubleSlab()
             }
 
             y(-5) {
@@ -705,9 +713,9 @@ object MiningLaserMultiblockTier4Bottom : MiningLaserMultiblockTier4() {
 
             y(-4) {
                 x(-2).anyStairs()
-                x(-1).anyTerracotta()
+                x(-1).terracottaOrDoubleSlab()
                 x(+0).anyStairs()
-                x(+1).anyTerracotta()
+                x(+1).terracottaOrDoubleSlab()
                 x(+2).anyStairs()
             }
 
@@ -747,7 +755,7 @@ object MiningLaserMultiblockTier4Bottom : MiningLaserMultiblockTier4() {
 
             y(-4) {
                 x(-1).anyStairs()
-                x(+0).anyTerracotta()
+                x(+0).terracottaOrDoubleSlab()
                 x(+1).anyStairs()
             }
         }
@@ -755,6 +763,7 @@ object MiningLaserMultiblockTier4Bottom : MiningLaserMultiblockTier4() {
 }
 
 object MiningLaserMultiblockTier4BottomMirrored : MiningLaserMultiblockTier4() {
+    override val displayName: Component get() = ofChildren(tierText, text(" Mining Laser (Bottom) (Mirrored)"))
     override val side = BlockFace.DOWN
 
     override fun getFirePointOffset(): Vec3i = Vec3i(+0, -6, -3)
@@ -794,7 +803,7 @@ object MiningLaserMultiblockTier4BottomMirrored : MiningLaserMultiblockTier4() {
 
             y(-4) {
                 x(-1).anyStairs()
-                x(+0).anyTerracotta()
+                x(+0).terracottaOrDoubleSlab()
                 x(+1).anyStairs()
             }
         }
@@ -842,9 +851,9 @@ object MiningLaserMultiblockTier4BottomMirrored : MiningLaserMultiblockTier4() {
 
             y(-4) {
                 x(-2).anyStairs()
-                x(-1).anyTerracotta()
+                x(-1).terracottaOrDoubleSlab()
                 x(+0).anyStairs()
-                x(+1).anyTerracotta()
+                x(+1).terracottaOrDoubleSlab()
                 x(+2).anyStairs()
             }
 
@@ -891,11 +900,11 @@ object MiningLaserMultiblockTier4BottomMirrored : MiningLaserMultiblockTier4() {
             }
 
             y(-4) {
-                x(-2).anyTerracotta()
+                x(-2).terracottaOrDoubleSlab()
                 x(-1).anyStairs()
                 x(+0).enrichedUraniumBlock()
                 x(+1).anyStairs()
-                x(+2).anyTerracotta()
+                x(+2).terracottaOrDoubleSlab()
             }
 
             y(-5) {
@@ -948,9 +957,9 @@ object MiningLaserMultiblockTier4BottomMirrored : MiningLaserMultiblockTier4() {
 
             y(-4) {
                 x(-2).anyStairs()
-                x(-1).anyTerracotta()
+                x(-1).terracottaOrDoubleSlab()
                 x(+0).anyStairs()
-                x(+1).anyTerracotta()
+                x(+1).terracottaOrDoubleSlab()
                 x(+2).anyStairs()
             }
 
@@ -990,7 +999,7 @@ object MiningLaserMultiblockTier4BottomMirrored : MiningLaserMultiblockTier4() {
 
             y(-4) {
                 x(-1).anyStairs()
-                x(+0).anyTerracotta()
+                x(+0).terracottaOrDoubleSlab()
                 x(+1).anyStairs()
             }
         }
@@ -998,6 +1007,7 @@ object MiningLaserMultiblockTier4BottomMirrored : MiningLaserMultiblockTier4() {
 }
 
 object MiningLaserMultiblockTier4Side : MiningLaserMultiblockTier4() {
+    override val displayName: Component get() = ofChildren(tierText, text(" Mining Laser (Side)"))
 	override val side = BlockFace.UP
 
 	override fun getFirePointOffset(): Vec3i = Vec3i(-1, +1, +8)
@@ -1185,35 +1195,35 @@ object MiningLaserMultiblockTier4Side : MiningLaserMultiblockTier4() {
 		z(+5) {
 			y(-1) {
 				x(-2).anyStairs()
-				x(-1).anyTerracotta()
+				x(-1).terracottaOrDoubleSlab()
 				x(+0).anyStairs()
 			}
 
 			y(+0) {
 				x(-3).anyStairs()
-				x(-2).anyTerracotta()
+				x(-2).terracottaOrDoubleSlab()
 				x(-1).anyWall()
-				x(+0).anyTerracotta()
+				x(+0).terracottaOrDoubleSlab()
 				x(+1).anyStairs()
 			}
 
 			y(+1) {
-				x(-3).anyTerracotta()
+				x(-3).terracottaOrDoubleSlab()
 				x(-2).anyWall()
 				x(-1).enrichedUraniumBlock()
 				x(+0).anyWall()
-				x(+1).anyTerracotta()
+				x(+1).terracottaOrDoubleSlab()
 			}
 			y(+2) {
 				x(-3).anyStairs()
-				x(-2).anyTerracotta()
+				x(-2).terracottaOrDoubleSlab()
 				x(-1).anyWall()
-				x(+0).anyTerracotta()
+				x(+0).terracottaOrDoubleSlab()
 				x(+1).anyStairs()
 			}
 			y(+3) {
 				x(-2).anyStairs()
-				x(-1).anyTerracotta()
+				x(-1).terracottaOrDoubleSlab()
 				x(+0).anyStairs()
 			}
 
@@ -1238,6 +1248,7 @@ object MiningLaserMultiblockTier4Side : MiningLaserMultiblockTier4() {
 }
 
 object MiningLaserMultiblockTier4SideMirrored : MiningLaserMultiblockTier4() {
+    override val displayName: Component get() = ofChildren(tierText, text(" Mining Laser (Side) (Mirrored)"))
     override val side = BlockFace.UP
 
     override fun getFirePointOffset(): Vec3i = Vec3i(+1, -1, -8)
@@ -1425,35 +1436,35 @@ object MiningLaserMultiblockTier4SideMirrored : MiningLaserMultiblockTier4() {
         z(+5) {
             y(-1) {
                 x(+2).anyStairs()
-                x(+1).anyTerracotta()
+                x(+1).terracottaOrDoubleSlab()
                 x(+0).anyStairs()
             }
 
             y(+0) {
                 x(+3).anyStairs()
-                x(+2).anyTerracotta()
+                x(+2).terracottaOrDoubleSlab()
                 x(+1).anyWall()
-                x(+0).anyTerracotta()
+                x(+0).terracottaOrDoubleSlab()
                 x(-1).anyStairs()
             }
 
             y(+1) {
-                x(+3).anyTerracotta()
+                x(+3).terracottaOrDoubleSlab()
                 x(+2).anyWall()
                 x(+1).enrichedUraniumBlock()
                 x(+0).anyWall()
-                x(-1).anyTerracotta()
+                x(-1).terracottaOrDoubleSlab()
             }
             y(+2) {
                 x(+3).anyStairs()
-                x(+2).anyTerracotta()
+                x(+2).terracottaOrDoubleSlab()
                 x(+1).anyWall()
-                x(+0).anyTerracotta()
+                x(+0).terracottaOrDoubleSlab()
                 x(-1).anyStairs()
             }
             y(+3) {
                 x(+2).anyStairs()
-                x(+1).anyTerracotta()
+                x(+1).terracottaOrDoubleSlab()
                 x(+0).anyStairs()
             }
 

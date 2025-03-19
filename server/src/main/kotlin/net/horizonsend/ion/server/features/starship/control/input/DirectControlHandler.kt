@@ -1,6 +1,5 @@
 package net.horizonsend.ion.server.features.starship.control.input
 
-import io.papermc.paper.entity.TeleportFlag
 import net.horizonsend.ion.common.extensions.userErrorAction
 import net.horizonsend.ion.common.utils.text.ofChildren
 import net.horizonsend.ion.server.features.cache.PlayerCache
@@ -10,12 +9,15 @@ import net.horizonsend.ion.server.features.starship.control.controllers.player.P
 import net.horizonsend.ion.server.features.starship.control.movement.StarshipControl
 import net.horizonsend.ion.server.features.starship.hyperspace.Hyperspace
 import net.horizonsend.ion.server.features.starship.movement.TranslateMovement
+import net.horizonsend.ion.server.features.world.IonWorld.Companion.hasFlag
+import net.horizonsend.ion.server.features.world.WorldFlag
+import net.horizonsend.ion.server.miscellaneous.utils.minecraft
 import net.kyori.adventure.text.Component.keybind
 import net.kyori.adventure.text.Component.text
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.NamedTextColor.GRAY
 import net.kyori.adventure.text.format.NamedTextColor.YELLOW
-import org.bukkit.entity.Player
+import net.minecraft.world.entity.Relative
 import org.bukkit.event.player.PlayerItemHeldEvent
 import org.bukkit.event.player.PlayerTeleportEvent
 import org.bukkit.util.Vector
@@ -60,12 +62,10 @@ class DirectControlHandler(controller: PlayerController) : PlayerMovementInputHa
 		directControlVector.y = 0.0
 		directControlVector.z = 0.0
 
-		val player: Player = (controller as? PlayerController)?.player ?: return
 		player.walkSpeed = 0.2f // default
 	}
 
 	override fun handlePlayerHoldItem(event: PlayerItemHeldEvent) {
-		val player = event.player
 		val inventory = player.inventory
 
 		val previousSlot = event.previousSlot
@@ -79,7 +79,8 @@ class DirectControlHandler(controller: PlayerController) : PlayerMovementInputHa
 
 		val baseSpeed = calculateSpeed(newSlot)
 		val cooldown: Long = calculateCooldown(starship.directControlCooldown, newSlot)
-		val speed = (10.0f * baseSpeed * (1000.0f / cooldown)).roundToInt() / 10.0f
+		val speed = (10.0f * baseSpeed * starship.directControlSpeedModifierFromIonTurrets *
+				starship.directControlSpeedModifierFromHeavyLasers * (1000.0f / cooldown)).roundToInt() / 10.0f
 
 		player.sendActionBar(text("Speed: $speed", NamedTextColor.AQUA))
 	}
@@ -94,15 +95,13 @@ class DirectControlHandler(controller: PlayerController) : PlayerMovementInputHa
 			return
 		}
 
-		val playerPilot = controller.player
-
 		// Ping compensation
-		val ping = getPing(playerPilot)
+		val ping = getPing(player)
 		val movementCooldown = starship.directControlCooldown
-		val playerDcModifier = PlayerCache[playerPilot.uniqueId].dcSpeedModifier
+		val playerDcModifier = PlayerCache[player.uniqueId].dcSpeedModifier
 		val speedFac = if (ping > movementCooldown) max(2, playerDcModifier) else playerDcModifier
 
-		val selectedSpeed = (controller.selectedDirectControlSpeed * starship.directControlSpeedModifier).toInt().coerceAtLeast(0)
+		val selectedSpeed = controller.selectedDirectControlSpeed
 
 		val cooldown = calculateCooldown(movementCooldown, selectedSpeed) * speedFac
 		val currentTime = System.currentTimeMillis()
@@ -118,9 +117,12 @@ class DirectControlHandler(controller: PlayerController) : PlayerMovementInputHa
 		var dy = 0
 		var dz = 0
 
+		// The starship's direction
 		val direction = starship.getTargetForward()
-		val targetSpeed = calculateSpeed(selectedSpeed)
+		val targetSpeed = (calculateSpeed(selectedSpeed) * starship.directControlSpeedModifierFromIonTurrets *
+				starship.directControlSpeedModifierFromHeavyLasers).toInt()
 
+		// Initialize forward movement
 		dx += (targetSpeed * direction.modX)
 		dz += (targetSpeed * direction.modZ)
 
@@ -131,70 +133,95 @@ class DirectControlHandler(controller: PlayerController) : PlayerMovementInputHa
 		}
 
 		// Use the player's location if available, otherwise the computer loc
-		val pilotLocation = playerPilot.location
+		val pilotLocation = player.location
 
 		var center = starship.directControlCenter
+		// If direct control center has not been set, calculate a new direct control center
 		if (center == null) {
 			center = pilotLocation.toBlockLocation().add(0.5, 0.0, 0.5)
 			starship.directControlCenter = center
 		}
 
-		// Calculate the movement vector
-		var vector = pilotLocation.toVector().subtract(center.toVector())
-		vector.setY(0)
-		vector.normalize()
+		// Calculate the movement vector by getting how far the player has moved from the center vector
+		var playerDeltaVector = pilotLocation.toVector().subtract(center.toVector())
+		playerDeltaVector.setY(0)     // Only consider horizontal changes
+		playerDeltaVector.normalize() // Normalize
 
-		// Clone the vector to do some additional math
-		val directionWrapper = center.clone()
-		directionWrapper.direction = Vector(direction.modX, direction.modY, direction.modZ)
+		// Create a separate location that contains the direct control center and the direction of the starship
+		val centerWithShipDirection = center.clone()
+		centerWithShipDirection.direction = Vector(direction.modX, direction.modY, direction.modZ)
 
-		val playerDirectionWrapper = center.clone()
-		playerDirectionWrapper.direction = playerPilot.location.direction
+		// Crate a separate location which contains the player's view direction
+		val centerWithPlayerDirection = center.clone()
+		centerWithPlayerDirection.direction = player.location.direction
 
-		val vectorWrapper = center.clone()
-		vectorWrapper.direction = vector
+		// Create a separate location which the player's direction offset
+		val centerWithPlayerDelta = center.clone()
+		centerWithPlayerDelta.direction = playerDeltaVector
 
-		vectorWrapper.yaw = vectorWrapper.yaw - (playerDirectionWrapper.yaw - directionWrapper.yaw)
-		vector = vectorWrapper.direction
+		// Set the horizontal rotation of the center clone containing the player's delta
+		// The new yaw value contains an exaggerated stafe, and cancels out ascending / descending inputs.
+		centerWithPlayerDelta.yaw = centerWithPlayerDelta.yaw - (centerWithPlayerDirection.yaw - centerWithShipDirection.yaw)
 
-		vector.x = round(vector.x)
-		vector.setY(0)
-		vector.z = round(vector.z)
+		// Use the calculated value as the delta vector
+		playerDeltaVector = centerWithPlayerDelta.direction
+
+		playerDeltaVector.x = round(playerDeltaVector.x)
+		playerDeltaVector.setY(0)
+		playerDeltaVector.z = round(playerDeltaVector.z)
 
 		val vectors = directControlPreviousVectors
 		if (vectors.size > 3) {
 			vectors.poll()
 		}
-		vectors.add(vector)
 
+		// Store strafe vectors
+		vectors.add(playerDeltaVector)
 
-		if (vector.x != 0.0 || vector.z != 0.0) {
+		// If player moved, teleport them back to dc center
+		if (playerDeltaVector.x != 0.0 || playerDeltaVector.z != 0.0) {
 			val newLoc = center.clone()
 
-			newLoc.pitch = playerPilot.location.pitch
-			newLoc.yaw = playerPilot.location.yaw
-
-			playerPilot.teleport(
-				newLoc,
-				PlayerTeleportEvent.TeleportCause.PLUGIN,
-				*TeleportFlag.Relative.entries.toTypedArray(),
-				TeleportFlag.EntityState.RETAIN_OPEN_INVENTORY
+			player.minecraft.teleportTo(
+				newLoc.world.minecraft,
+				newLoc.x,
+				newLoc.y,
+				newLoc.z,
+				setOf(
+					Relative.X_ROT,
+					Relative.Y_ROT,
+				),
+				0f,
+				0f,
+				true,
+				PlayerTeleportEvent.TeleportCause.PLUGIN
 			)
+//
+//			newLoc.pitch = player.location.pitch
+//			newLoc.yaw = player.location.yaw
+//
+//			player.teleport(
+//				newLoc,
+//				PlayerTeleportEvent.TeleportCause.PLUGIN,
+//				*TeleportFlag.Relative.entries.toTypedArray(),
+//				TeleportFlag.EntityState.RETAIN_OPEN_INVENTORY,
+//				TeleportFlag.EntityState.RETAIN_VEHICLE
+//			)
 		}
 
-		var highestFrequency = Collections.frequency(vectors, vector)
+		var highestFrequency = Collections.frequency(vectors, playerDeltaVector)
 		for (previousVector in vectors) {
 			val frequency = Collections.frequency(vectors, previousVector)
-			if (previousVector != vector && frequency > highestFrequency) {
+			if (previousVector != playerDeltaVector && frequency > highestFrequency) {
 				highestFrequency = frequency
-				vector = previousVector
+				playerDeltaVector = previousVector
 			}
 		}
 
 		val forwardZ = direction.modZ != 0
-		val strafeAxis = if (forwardZ) vector.x else vector.z
+		val strafeAxis = if (forwardZ) playerDeltaVector.x else playerDeltaVector.z
 		val strafe = sign(strafeAxis).toInt() * abs(targetSpeed)
-		val ascensionAxis = if (forwardZ) vector.z * -direction.modZ else vector.x * -direction.modX
+		val ascensionAxis = if (forwardZ) playerDeltaVector.z * -direction.modZ else playerDeltaVector.x * -direction.modX
 		val ascension = sign(ascensionAxis).toInt() * abs(targetSpeed)
 		if (forwardZ) dx += strafe else dz += strafe
 		dy += ascension
@@ -216,13 +243,16 @@ class DirectControlHandler(controller: PlayerController) : PlayerMovementInputHa
 		dy *= speedFac
 		dz *= speedFac
 
+		var maxHeight = starship.world.maxHeight
+		if (starship.world.hasFlag(WorldFlag.SPACE_WORLD)) maxHeight -= 1
+
 		when {
 			dy < 0 && starship.min.y + dy < 0 -> {
 				dy = -starship.min.y
 			}
 
-			dy > 0 && starship.max.y + dy > starship.world.maxHeight -> {
-				dy = starship.world.maxHeight - starship.max.y
+			dy > 0 && starship.max.y + dy >= maxHeight -> {
+				dy = maxHeight - starship.max.y
 			}
 		}
 
@@ -234,7 +264,7 @@ class DirectControlHandler(controller: PlayerController) : PlayerMovementInputHa
 			return
 		}
 
-		playerPilot.walkSpeed = 0.009f
+		player.walkSpeed = 0.009f
 		TranslateMovement.loadChunksAndMove(starship, dx, dy, dz)
 	}
 

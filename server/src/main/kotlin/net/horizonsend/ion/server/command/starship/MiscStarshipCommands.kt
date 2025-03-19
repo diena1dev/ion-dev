@@ -221,6 +221,8 @@ object MiscStarshipCommands : net.horizonsend.ion.server.command.SLCommand() {
 		string == "~" -> originCoord
 
 		string.startsWith("~") -> parseNumber(string.removePrefix("~"), 0) + originCoord
+		string.endsWith("k") -> parseNumber(string.removeSuffix("k"), 0) * 1000
+		string.endsWith("K") -> parseNumber(string.removeSuffix("K"), 0) * 1000
 
 		else -> string.toIntOrNull() ?: fail { "&cInvalid X or Z coordinate! Must be a number." }
 	}
@@ -310,6 +312,8 @@ object MiscStarshipCommands : net.horizonsend.ion.server.command.SLCommand() {
 		sender: Player,
 		tier: Int?
 	) {
+		failIf(starship.type == StarshipType.INTERCEPTOR) { "Interceptors cannot jump to hyperspace" }
+
 		val hyperdrive: HyperdriveSubsystem = tier?.let { Hyperspace.findHyperdrive(starship, tier) }
 			?: Hyperspace.findHyperdrive(starship) ?: fail {
 				"Intact hyperdrive not found"
@@ -333,7 +337,7 @@ object MiscStarshipCommands : net.horizonsend.ion.server.command.SLCommand() {
 		}
 
 		failIf(!destinationWorld.worldBorder.isInside(Location(destinationWorld, x.toDouble(), 128.0, z.toDouble()))) {
-			"Destination coordinates are outside the world order"
+			"Destination coordinates are outside the world border!"
 		}
 
 		val massShadowInfo = MassShadows.find(

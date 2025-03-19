@@ -1,10 +1,11 @@
 package net.horizonsend.ion.server.features.multiblock.type.printer
 
 import net.horizonsend.ion.server.features.client.display.modular.DisplayHandlers
-import net.horizonsend.ion.server.features.client.display.modular.display.PowerEntityDisplay
-import net.horizonsend.ion.server.features.client.display.modular.display.StatusDisplay
+import net.horizonsend.ion.server.features.client.display.modular.display.PowerEntityDisplayModule
+import net.horizonsend.ion.server.features.client.display.modular.display.StatusDisplayModule
 import net.horizonsend.ion.server.features.multiblock.Multiblock
 import net.horizonsend.ion.server.features.multiblock.entity.PersistentMultiblockData
+import net.horizonsend.ion.server.features.multiblock.entity.type.FurnaceBasedMultiblockEntity
 import net.horizonsend.ion.server.features.multiblock.entity.type.LegacyMultiblockEntity
 import net.horizonsend.ion.server.features.multiblock.entity.type.StatusMultiblockEntity
 import net.horizonsend.ion.server.features.multiblock.entity.type.power.SimplePoweredEntity
@@ -13,6 +14,7 @@ import net.horizonsend.ion.server.features.multiblock.entity.type.ticked.SyncTic
 import net.horizonsend.ion.server.features.multiblock.entity.type.ticked.TickedMultiblockEntityParent.TickingManager
 import net.horizonsend.ion.server.features.multiblock.manager.MultiblockManager
 import net.horizonsend.ion.server.features.multiblock.shape.MultiblockShape
+import net.horizonsend.ion.server.features.multiblock.type.DisplayNameMultilblock
 import net.horizonsend.ion.server.features.multiblock.type.EntityMultiblock
 import net.horizonsend.ion.server.miscellaneous.utils.LegacyItemUtils
 import net.kyori.adventure.text.Component.text
@@ -25,7 +27,7 @@ import org.bukkit.block.Sign
 import org.bukkit.inventory.FurnaceInventory
 import org.bukkit.inventory.ItemStack
 
-abstract class PrinterMultiblock : Multiblock(), EntityMultiblock<PrinterMultiblock.PrinterEntity> {
+abstract class PrinterMultiblock : Multiblock(), EntityMultiblock<PrinterMultiblock.PrinterEntity>, DisplayNameMultilblock {
 	override val name: String = "printer"
 	abstract fun getOutput(product: Material): ItemStack
 	abstract val mirrored: Boolean
@@ -138,14 +140,14 @@ abstract class PrinterMultiblock : Multiblock(), EntityMultiblock<PrinterMultibl
 		z: Int,
 		world: World,
 		structureFace: BlockFace
-	) : SimplePoweredEntity(data, multiblock, manager, x, y, z, world, structureFace, 50_000), LegacyMultiblockEntity, StatusTickedMultiblockEntity, SyncTickingMultiblockEntity {
+	) : SimplePoweredEntity(data, multiblock, manager, x, y, z, world, structureFace, 50_000), LegacyMultiblockEntity, StatusTickedMultiblockEntity, SyncTickingMultiblockEntity, FurnaceBasedMultiblockEntity {
 		override val tickingManager: TickingManager = TickingManager(interval = 1)
 		override val statusManager: StatusMultiblockEntity.StatusManager = StatusMultiblockEntity.StatusManager()
 
 		override val displayHandler = DisplayHandlers.newMultiblockSignOverlay(
 			this,
-			PowerEntityDisplay(this, +0.0, +0.0, +0.0, 0.45f),
-			StatusDisplay(statusManager, +0.0, -0.10, +0.0, 0.45f)
+			{ PowerEntityDisplayModule(it, this) },
+			{ StatusDisplayModule(it, statusManager) }
 		).register()
 
 		override fun loadFromSign(sign: Sign) {
@@ -172,12 +174,7 @@ abstract class PrinterMultiblock : Multiblock(), EntityMultiblock<PrinterMultibl
 			powerStorage.removePower(250)
 
 			sleepWithStatus(text("Working", GREEN), 100)
-
-			val furnace = furnaceInventory.holder ?: return
-			furnace.burnTime = Short.MAX_VALUE
-			furnace.cookTime = 100
-
-			furnace.update()
+			setBurningForTicks(100)
 		}
 	}
 }

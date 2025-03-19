@@ -1,6 +1,8 @@
 package net.horizonsend.ion.server.features.multiblock.type.defense.passive.areashield
 
 import net.horizonsend.ion.common.extensions.success
+import net.horizonsend.ion.common.utils.text.legacyAmpersand
+import net.horizonsend.ion.common.utils.text.ofChildren
 import net.horizonsend.ion.server.IonServer
 import net.horizonsend.ion.server.features.client.display.modular.TextDisplayHandler
 import net.horizonsend.ion.server.features.multiblock.Multiblock
@@ -8,12 +10,15 @@ import net.horizonsend.ion.server.features.multiblock.entity.PersistentMultibloc
 import net.horizonsend.ion.server.features.multiblock.entity.type.LegacyMultiblockEntity
 import net.horizonsend.ion.server.features.multiblock.entity.type.power.SimplePoweredEntity
 import net.horizonsend.ion.server.features.multiblock.manager.MultiblockManager
+import net.horizonsend.ion.server.features.multiblock.type.DisplayNameMultilblock
 import net.horizonsend.ion.server.features.multiblock.type.EntityMultiblock
 import net.horizonsend.ion.server.features.multiblock.type.InteractableMultiblock
 import net.horizonsend.ion.server.features.world.IonWorld.Companion.ion
 import net.horizonsend.ion.server.miscellaneous.utils.Tasks
 import net.horizonsend.ion.server.miscellaneous.utils.coordinates.Vec3i
 import net.horizonsend.ion.server.miscellaneous.utils.coordinates.getSphereBlocks
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.Component.text
 import org.bukkit.Material
 import org.bukkit.Particle
 import org.bukkit.World
@@ -23,7 +28,7 @@ import org.bukkit.entity.Player
 import org.bukkit.event.player.PlayerInteractEvent
 import java.util.concurrent.TimeUnit
 
-abstract class AreaShield(val radius: Int) : Multiblock(), EntityMultiblock<AreaShield.AreaShieldEntity>, InteractableMultiblock {
+abstract class AreaShield(val radius: Int) : Multiblock(), EntityMultiblock<AreaShield.AreaShieldEntity>, InteractableMultiblock, DisplayNameMultilblock {
 	override fun onTransformSign(player: Player, sign: Sign) {
 		player.success("Area Shield created.")
 	}
@@ -60,13 +65,17 @@ abstract class AreaShield(val radius: Int) : Multiblock(), EntityMultiblock<Area
 		}.runTaskTimer(IonServer, 20, 20)
 	}
 
+	val shieldText = "&8Radius: &a$radius"
 	override val name = "areashield"
 	override val signText = createSignText(
 		"&6Area",
 		"&bParticle Shield",
 		null,
-		"&8Radius: &a$radius"
+		shieldText,
 	)
+
+	override val displayName: Component get() = ofChildren(text("Area Shield "), text("("), legacyAmpersand.deserialize(shieldText), text(")"))
+	override val description: Component get() = text("Prevents explosions within a $radius radius.")
 
 	override fun createEntity(manager: MultiblockManager, data: PersistentMultiblockData, world: World, x: Int, y: Int, z: Int, structureDirection: BlockFace): AreaShieldEntity {
 		return AreaShieldEntity(data, manager, this, x, y, z, world, structureDirection)

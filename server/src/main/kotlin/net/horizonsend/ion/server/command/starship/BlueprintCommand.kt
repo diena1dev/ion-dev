@@ -7,7 +7,6 @@ import co.aikar.commands.annotation.CommandCompletion
 import co.aikar.commands.annotation.CommandPermission
 import co.aikar.commands.annotation.Optional
 import co.aikar.commands.annotation.Subcommand
-import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.sk89q.worldedit.bukkit.BukkitAdapter
 import com.sk89q.worldedit.extent.clipboard.Clipboard
 import com.sk89q.worldedit.math.BlockVector3
@@ -18,7 +17,7 @@ import net.horizonsend.ion.common.database.slPlayerId
 import net.horizonsend.ion.common.extensions.success
 import net.horizonsend.ion.common.extensions.userError
 import net.horizonsend.ion.common.utils.text.isAlphanumeric
-import net.horizonsend.ion.server.features.nations.gui.playerClicker
+import net.horizonsend.ion.server.features.gui.custom.blueprint.BlueprintMenu
 import net.horizonsend.ion.server.features.progression.Levels
 import net.horizonsend.ion.server.features.starship.DeactivatedPlayerStarships
 import net.horizonsend.ion.server.features.starship.PilotedStarships
@@ -30,11 +29,10 @@ import net.horizonsend.ion.server.features.starship.active.ActiveControlledStars
 import net.horizonsend.ion.server.features.starship.factory.PrintItem
 import net.horizonsend.ion.server.features.starship.factory.StarshipFactories
 import net.horizonsend.ion.server.miscellaneous.registrations.ShipFactoryMaterialCosts
-import net.horizonsend.ion.server.miscellaneous.utils.MenuHelper
 import net.horizonsend.ion.server.miscellaneous.utils.Notify
 import net.horizonsend.ion.server.miscellaneous.utils.Tasks
-import net.horizonsend.ion.server.miscellaneous.utils.coordinates.Vec3i
 import net.horizonsend.ion.server.miscellaneous.utils.actualType
+import net.horizonsend.ion.server.miscellaneous.utils.coordinates.Vec3i
 import net.horizonsend.ion.server.miscellaneous.utils.createData
 import net.horizonsend.ion.server.miscellaneous.utils.loadClipboard
 import net.horizonsend.ion.server.miscellaneous.utils.nms
@@ -53,9 +51,8 @@ import org.litote.kmongo.save
 import java.util.LinkedList
 import java.util.Locale
 import java.util.UUID
-import kotlin.collections.set
 
-@CommandAlias("blueprint | bp")
+@CommandAlias("blueprint")
 object BlueprintCommand : net.horizonsend.ion.server.command.SLCommand() {
 	override fun onEnable(manager: PaperCommandManager) {
 		registerAsyncCompletion(manager, "blueprints") { c ->
@@ -140,7 +137,7 @@ object BlueprintCommand : net.horizonsend.ion.server.command.SLCommand() {
 		sender.success("Deleted blueprint ${blueprint.name}")
 	}
 
-	private fun blueprintInfo(blueprint: Blueprint): List<String> {
+	fun blueprintInfo(blueprint: Blueprint): List<String> {
 		val list = LinkedList<String>()
 		val cost = calculateBlueprintCost(blueprint)
 		list.add("<gray>Size<dark_gray>: <gold>${blueprint.size}")
@@ -165,25 +162,23 @@ object BlueprintCommand : net.horizonsend.ion.server.command.SLCommand() {
 
 	@Suppress("Unused")
 	@Subcommand("list")
-	fun onList(sender: Player) = asyncCommand(sender) {
+	fun onList(sender: Player) {
 		val slPlayerId = sender.slPlayerId
-		val blueprints: List<Blueprint> = Blueprint
-			.find(Blueprint::owner eq slPlayerId)
-			.descendingSort(Blueprint::size)
-			.toList()
-		failIf(blueprints.isEmpty()) {
-			"You have no blueprints"
-		}
-		MenuHelper.apply {
-			val items: List<GuiItem> = blueprints.map { blueprint ->
-				guiButton(blueprint.type.actualType.menuItem) {
-					playerClicker.closeInventory()
-					Tasks.async { showMaterials(playerClicker, blueprint) }
-				}.setName(blueprint.name).setRichLore(blueprintInfo(blueprint))
+
+		Tasks.async {
+			val blueprints: List<Blueprint> = Blueprint
+				.find(Blueprint::owner eq slPlayerId)
+				.descendingSort(Blueprint::size)
+				.toList()
+
+			failIf(blueprints.isEmpty()) {
+				"You have no blueprints"
 			}
-			Tasks.sync {
-				sender.openPaginatedMenu("Your Blueprints", items)
-			}
+
+			BlueprintMenu(sender) { blueprint, player ->
+				player.closeInventory()
+				Tasks.async { showMaterials(player, blueprint) }
+			}.open()
 		}
 	}
 
@@ -310,7 +305,7 @@ object BlueprintCommand : net.horizonsend.ion.server.command.SLCommand() {
 
 	private fun isAir(state: BlockState?) = state?.blockType?.material?.isAir != false
 
-	private fun showMaterials(sender: Player, blueprint: Blueprint) {
+	fun showMaterials(sender: Player, blueprint: Blueprint) {
 		val clipboard = blueprint.loadClipboard()
 
 		val map = mutableMapOf<PrintItem, Int>()

@@ -2,7 +2,9 @@ package net.horizonsend.ion.common.utils.text
 
 import net.horizonsend.ion.common.database.Oid
 import net.horizonsend.ion.common.database.cache.nations.NationCache
+import net.horizonsend.ion.common.database.cache.nations.SettlementCache
 import net.horizonsend.ion.common.database.schema.nations.Nation
+import net.horizonsend.ion.common.database.schema.nations.Settlement
 import net.horizonsend.ion.common.utils.text.colors.HEColorScheme
 import net.horizonsend.ion.common.utils.text.colors.HEColorScheme.Companion.HE_DARK_GRAY
 import net.horizonsend.ion.common.utils.text.colors.HEColorScheme.Companion.HE_LIGHT_GRAY
@@ -244,6 +246,19 @@ inline fun formatPaginatedMenu(
 	return builder.build()
 }
 
+inline fun <T> formatPaginatedMenu(
+	entries: List<T>,
+	command: String,
+	currentPage: Int,
+	maxPerPage: Int = 10,
+	color: TextColor = HEColorScheme.HE_MEDIUM_GRAY,
+	paramColor: TextColor = HE_LIGHT_GRAY,
+	footerSeparator: Component? = null,
+	entryProvider: (T, Int) -> Component
+): Component {
+	return formatPaginatedMenu(entries.size, command, currentPage, maxPerPage, color, paramColor, footerSeparator) { index -> entryProvider.invoke(entries[index], index) }
+}
+
 /**
  * Builds a chat paginated menu
  *
@@ -289,6 +304,11 @@ fun commandPrompt(shownText: String, color: TextColor, command: String): Compone
 fun formatNationName(id: Oid<Nation>): Component {
 	val cached = NationCache[id]
 	return text(cached.name, TextColor.color(cached.color))
+}
+
+fun formatSettlementName(id: Oid<Settlement>): Component {
+	val cached = SettlementCache[id]
+	return text(cached.name, NamedTextColor.AQUA)
 }
 
 fun formatException(throwable: Throwable): Component {

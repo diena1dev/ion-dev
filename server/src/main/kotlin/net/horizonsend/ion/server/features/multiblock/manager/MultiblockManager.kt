@@ -1,17 +1,23 @@
 package net.horizonsend.ion.server.features.multiblock.manager
 
 import net.horizonsend.ion.server.features.multiblock.Multiblock
+import net.horizonsend.ion.server.features.multiblock.MultiblockEntities
 import net.horizonsend.ion.server.features.multiblock.entity.MultiblockEntity
 import net.horizonsend.ion.server.features.multiblock.entity.PersistentMultiblockData
 import net.horizonsend.ion.server.features.multiblock.entity.linkages.MultiblockLinkageManager
 import net.horizonsend.ion.server.features.multiblock.entity.type.ticked.AsyncTickingMultiblockEntity
 import net.horizonsend.ion.server.features.multiblock.entity.type.ticked.SyncTickingMultiblockEntity
 import net.horizonsend.ion.server.features.multiblock.type.EntityMultiblock
+import net.horizonsend.ion.server.features.transport.manager.TransportManager
 import net.horizonsend.ion.server.features.transport.nodes.cache.TransportCache
 import net.horizonsend.ion.server.features.transport.nodes.inputs.InputManager
 import net.horizonsend.ion.server.features.transport.util.CacheType
 import net.horizonsend.ion.server.miscellaneous.utils.coordinates.BlockKey
+import net.horizonsend.ion.server.miscellaneous.utils.coordinates.Vec3i
 import net.horizonsend.ion.server.miscellaneous.utils.coordinates.getRelative
+import net.horizonsend.ion.server.miscellaneous.utils.coordinates.getX
+import net.horizonsend.ion.server.miscellaneous.utils.coordinates.getY
+import net.horizonsend.ion.server.miscellaneous.utils.coordinates.getZ
 import net.horizonsend.ion.server.miscellaneous.utils.coordinates.toBlockKey
 import net.horizonsend.ion.server.miscellaneous.utils.getFacing
 import net.horizonsend.ion.server.miscellaneous.utils.isWallSign
@@ -35,6 +41,8 @@ abstract class MultiblockManager(val log: Logger) {
 
 	abstract fun getLinkageManager(): MultiblockLinkageManager
 
+	abstract fun getTransportManager(): TransportManager<*>
+
 	abstract fun save()
 
 	abstract fun markChanged()
@@ -52,25 +60,25 @@ abstract class MultiblockManager(val log: Logger) {
 	 **/
 	fun addMultiblockEntity(entity: MultiblockEntity, save: Boolean = true, ensureSign: Boolean = false) {
 		if (ensureSign) {
-			val signOrigin = MultiblockEntity.getSignFromOrigin(entity.world, entity.vec3i, entity.structureDirection)
+			val signOrigin = MultiblockEntity.getSignFromOrigin(entity.world, entity.globalVec3i, entity.structureDirection)
 			if (!signOrigin.type.isWallSign) {
-				log.info("Removing invalid multiblock entity at ${entity.vec3i} on ${entity.world.name}")
+				log.info("Removing invalid multiblock entity at ${entity.globalVec3i} on ${entity.world.name}")
 				entity.remove()
 				return
 			}
 		}
 
-		multiblockEntities.remove(entity.locationKey)?.processRemoval()
-		multiblockEntities[entity.locationKey] = entity
+		multiblockEntities.remove(entity.localBlockKey)?.processRemoval()
+		multiblockEntities[entity.localBlockKey] = entity
 
 		entity.processLoad()
 
 		if (entity is SyncTickingMultiblockEntity) {
-			syncTickingMultiblockEntities[entity.locationKey] = entity
+			syncTickingMultiblockEntities[entity.localBlockKey] = entity
 		}
 
 		if (entity is AsyncTickingMultiblockEntity) {
-			asyncTickingMultiblockEntities[entity.locationKey] = entity
+			asyncTickingMultiblockEntities[entity.localBlockKey] = entity
 		}
 
 		if (save) save()
@@ -81,7 +89,13 @@ abstract class MultiblockManager(val log: Logger) {
 	 **/
 	fun removeMultiblockEntity(x: Int, y: Int, z: Int, save: Boolean = true): MultiblockEntity? {
 		val key = toBlockKey(x, y, z)
+		return removeMultiblockEntity(key, save)
+	}
 
+	/**
+	 * Upon the removal of a multiblock sign
+	 **/
+	fun removeMultiblockEntity(key: BlockKey, save: Boolean = true): MultiblockEntity? {
 		val entity = multiblockEntities.remove(key)
 
 		syncTickingMultiblockEntities.remove(key)
@@ -142,30 +156,51 @@ abstract class MultiblockManager(val log: Logger) {
 	/**
 	 * Multiblock entities are stored on the block the sign is placed on
 	 **/
-	operator fun get(sign: Sign): MultiblockEntity? {
+	open operator fun get(sign: Sign): MultiblockEntity? {
 		return multiblockEntities[getRelative(toBlockKey(sign.x, sign.y, sign.z), sign.getFacing().oppositeFace)]
 	}
 
 	fun isOccupied(x: Int, y: Int, z: Int): Boolean = multiblockEntities.containsKey(toBlockKey(x, y, z))
 
-	fun handleTransfer(location: BlockKey, destination: MultiblockManager) {
-		val atLocation = get(location) ?: return
-		atLocation.releaseInputs()
-		atLocation.manager = this
-		multiblockEntities.remove(location)
+	fun handleTransferTo(oldBlockKey: BlockKey, newBlockKey: BlockKey, destination: MultiblockManager) {
+		val atLocation = get(oldBlockKey) ?: return
 
-		destination.multiblockEntities[location] = atLocation
+		// Remove all ties to old manager and other multis
+		atLocation.releaseInputs()
+		atLocation.removeLinkages()
+
+		// Transfer manager
+		atLocation.manager = destination
+
+		// Remove current occupant at spot to handle it properly
+		multiblockEntities.remove(oldBlockKey)
+
+		destination.multiblockEntities[newBlockKey] = atLocation
+		if (oldBlockKey != newBlockKey) {
+			atLocation.localOffsetX = getX(newBlockKey)
+			atLocation.localOffsetY = getY(newBlockKey)
+			atLocation.localOffsetZ = getZ(newBlockKey)
+		}
+
+		// Tie into new network
 		atLocation.registerInputs()
+		atLocation.linkages.forEach { t -> t.register() }
 
 		if (atLocation is SyncTickingMultiblockEntity) {
-			destination.syncTickingMultiblockEntities[location] = atLocation
-			syncTickingMultiblockEntities.remove(location)
+			destination.syncTickingMultiblockEntities[newBlockKey] = atLocation
+			syncTickingMultiblockEntities.remove(oldBlockKey)
 		}
 
 		if (atLocation is AsyncTickingMultiblockEntity) {
-			destination.asyncTickingMultiblockEntities[location] = atLocation
-			asyncTickingMultiblockEntities.remove(location)
+			destination.asyncTickingMultiblockEntities[newBlockKey] = atLocation
+			asyncTickingMultiblockEntities.remove(oldBlockKey)
 		}
 	}
+
+	open fun getGlobalCoordinate(localVec3i: Vec3i): Vec3i = localVec3i
+	open fun getLocalCoordinate(globalVec3i: Vec3i): Vec3i = globalVec3i
+
+	open fun getGlobalMultiblockEntity(world: World, x: Int, y: Int, z: Int): MultiblockEntity? =
+		MultiblockEntities.getMultiblockEntity(world, x, y, z)
 }
 

@@ -5,6 +5,7 @@ import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import net.horizonsend.ion.server.configuration.StarshipWeapons
 import net.horizonsend.ion.server.features.multiblock.Multiblock
 import net.horizonsend.ion.server.features.multiblock.MultiblockAccess
+import net.horizonsend.ion.server.features.multiblock.type.DisplayNameMultilblock
 import net.horizonsend.ion.server.features.multiblock.type.starship.SubsystemMultiblock
 import net.horizonsend.ion.server.features.starship.active.ActiveStarship
 import net.horizonsend.ion.server.features.starship.active.ActiveStarships
@@ -30,7 +31,7 @@ import kotlin.math.cos
 import kotlin.math.roundToInt
 import kotlin.math.sin
 
-abstract class TurretMultiblock : Multiblock(), SubsystemMultiblock<TurretWeaponSubsystem> {
+abstract class TurretMultiblock : Multiblock(), SubsystemMultiblock<TurretWeaponSubsystem>, DisplayNameMultilblock {
 	init {
 		shape.signCentered()
 		shape.ignoreDirection()

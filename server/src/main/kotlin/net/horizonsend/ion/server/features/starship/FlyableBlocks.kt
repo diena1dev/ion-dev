@@ -159,6 +159,7 @@ import org.bukkit.Material.TARGET
 import org.bukkit.Material.TERRACOTTA
 import org.bukkit.Material.TORCH
 import org.bukkit.Material.TRAPPED_CHEST
+import org.bukkit.Material.VAULT
 import org.bukkit.Material.VERDANT_FROGLIGHT
 import org.bukkit.Material.WALL_TORCH
 import org.bukkit.Material.WATER_CAULDRON
@@ -207,6 +208,7 @@ val FLYABLE_BLOCKS: EnumSet<Material> = mutableSetOf(
 	EMERALD_BLOCK,
 	COAL_BLOCK,
 	BROWN_MUSHROOM_BLOCK, // custom ores
+	VAULT, // custom blocks
 
 	// used for landing gears
 	PISTON,
