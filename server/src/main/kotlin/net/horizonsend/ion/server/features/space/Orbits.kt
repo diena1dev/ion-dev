@@ -10,10 +10,7 @@ import kotlin.system.measureNanoTime
 object Orbits : IonServerComponent(true) {
 	// schedule orbiting all the planets every midnight
 	override fun onEnable() {
- 		Tasks.sync {
- 			orbitPlanets()
- 		}
-
+ 		Tasks.sync { orbitPlanets() }
         schedule()
 	}
 
