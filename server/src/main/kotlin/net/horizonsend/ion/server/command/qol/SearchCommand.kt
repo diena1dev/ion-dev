@@ -29,7 +29,7 @@ import org.bukkit.inventory.InventoryHolder
 import org.bukkit.inventory.ItemStack
 import org.litote.kmongo.setValue
 
-@CommandAlias("itemsearch")
+@CommandAlias("itemsearch | is")
 @CommandPermission("ion.search")
 object SearchCommand : SLCommand() {
 	@Default

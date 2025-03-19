@@ -55,7 +55,7 @@ import java.util.Locale
 import java.util.UUID
 import kotlin.collections.set
 
-@CommandAlias("blueprint")
+@CommandAlias("blueprint | bp")
 object BlueprintCommand : net.horizonsend.ion.server.command.SLCommand() {
 	override fun onEnable(manager: PaperCommandManager) {
 		registerAsyncCompletion(manager, "blueprints") { c ->
