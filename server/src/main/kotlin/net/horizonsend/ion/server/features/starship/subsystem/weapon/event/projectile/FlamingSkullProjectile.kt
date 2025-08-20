@@ -1,10 +1,11 @@
 package net.horizonsend.ion.server.features.starship.subsystem.weapon.event.projectile
 
+import net.horizonsend.ion.server.configuration.StarshipSounds
 import net.horizonsend.ion.server.configuration.StarshipWeapons
+import net.horizonsend.ion.server.features.client.display.modular.ItemDisplayContainer
 import net.horizonsend.ion.server.features.multiblock.type.starship.weapon.event.SkullThrowerStarshipWeaponMultiblock
 import net.horizonsend.ion.server.features.starship.Starship
 import net.horizonsend.ion.server.features.starship.damager.Damager
-import net.horizonsend.ion.server.features.starship.subsystem.weapon.projectile.ItemDisplayContainer
 import net.horizonsend.ion.server.features.starship.subsystem.weapon.projectile.TrackingLaserProjectile
 import net.kyori.adventure.text.Component
 import org.bukkit.Color
@@ -32,6 +33,8 @@ class FlamingSkullProjectile(
 	override val volume: Int = balancing.volume
 	override val pitch: Float = balancing.pitch
 	override val soundName: String = balancing.soundName
+	override val nearSound: StarshipSounds.SoundInfo = balancing.soundFireNear
+	override val farSound: StarshipSounds.SoundInfo = balancing.soundFireFar
 
 	override val color: Color = Color.RED
 	override val maxDegrees: Double = 10.0

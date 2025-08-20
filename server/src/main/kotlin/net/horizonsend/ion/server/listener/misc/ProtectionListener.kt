@@ -1,11 +1,13 @@
 package net.horizonsend.ion.server.listener.misc
 
 import io.papermc.paper.event.player.PlayerItemFrameChangeEvent
+import net.horizonsend.ion.common.database.schema.misc.PlayerSettings
 import net.horizonsend.ion.common.database.schema.starships.PlayerStarshipData
+import net.horizonsend.ion.common.extensions.hint
 import net.horizonsend.ion.common.extensions.informationAction
 import net.horizonsend.ion.common.extensions.userError
 import net.horizonsend.ion.common.utils.lpHasPermission
-import net.horizonsend.ion.server.features.cache.PlayerCache
+import net.horizonsend.ion.server.features.cache.PlayerSettingsCache.getSetting
 import net.horizonsend.ion.server.features.nations.region.Regions
 import net.horizonsend.ion.server.features.nations.region.types.RegionSettlementZone
 import net.horizonsend.ion.server.features.nations.region.types.RegionTerritory
@@ -54,8 +56,11 @@ import org.bukkit.event.player.PlayerBucketEmptyEvent
 import org.bukkit.event.player.PlayerBucketFillEvent
 import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.inventory.InventoryHolder
+import java.util.UUID
 
 object ProtectionListener : SLEventListener() {
+	val orbitBreakEnable = mutableSetOf<UUID>()
+
 	/** Handle interact events as block edits **/
 	@EventHandler
 	fun onClickBlock(event: PlayerInteractEvent) {
@@ -156,7 +161,19 @@ object ProtectionListener : SLEventListener() {
 
 		if (isLockedShipDenied(player, location)) return true
 
-		if (event is BlockPlaceEvent && isPlanetOrbitDenied(player, location, false)) return true
+		if (isPlanetOrbitDenied(player, location, true)) {
+			if (event is BlockPlaceEvent) {
+				player.userError("You cannot build in the way of a planet's orbit")
+				return true
+			}
+			else if (event is BlockBreakEvent) {
+				return if (!orbitBreakEnable.contains(player.uniqueId)) {
+					player.hint("Did you want to break blocks in the orbit of a planet? Click to enable")
+					player.sendRichMessage("<green><italic><hover:show_text:'<gray>/orbitbreak'><click:run_command:/orbitbreak>Enable</click>")
+					true
+				} else false
+			}
+		}
 
 		return denied
 	}
@@ -188,7 +205,7 @@ object ProtectionListener : SLEventListener() {
 				player action "&eBypassed ${region.javaClass.simpleName.removePrefix("Region")} protection in dutymode"
 				break // only show one message, they will bypass anything else anyway
 			} else {
-				if (!denied && PlayerCache[player].protectionMessagesEnabled) { // only if no other region has already reached this, in order to maintain the priority of region messages
+				if (!denied && player.getSetting(PlayerSettings::protectionMessagesEnabled)) { // only if no other region has already reached this, in order to maintain the priority of region messages
 					// Send them the detailed message
 					player.sendTitle("", "&e$message".colorize(), 5, 20, 5)
 					player.sendActionBar("&cThis place is claimed! Find an unclaimed territory with the map (https://survival.horizonsend.net)".colorize())

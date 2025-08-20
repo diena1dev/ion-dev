@@ -39,7 +39,10 @@ class DecomposeTask(
 		taskEntity.userManager.clear()
 	}
 
+	override var isDisabled: Boolean = false
+
 	override fun onDisable() {
+		isDisabled = true
 		taskEntity.userManager.getUserPlayer()?.information("Decomposer broke $totalBlocksBroken blocks.")
 		taskEntity.userManager.clear()
 	}
@@ -139,7 +142,7 @@ class DecomposeTask(
 
 		if (!event.callEvent()) {
 			totalBlocksSkiped++
-			return false
+			return true
 		}
 
 		val blockData = block.blockData

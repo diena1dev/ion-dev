@@ -1,11 +1,8 @@
 package net.horizonsend.ion.server.command.nations
 
 import co.aikar.commands.InvalidCommandArgument
-import co.aikar.commands.annotation.CommandAlias
-import co.aikar.commands.annotation.CommandCompletion
-import co.aikar.commands.annotation.Description
+import co.aikar.commands.annotation.*
 import co.aikar.commands.annotation.Optional
-import co.aikar.commands.annotation.Subcommand
 import net.horizonsend.ion.common.database.Oid
 import net.horizonsend.ion.common.database.cache.nations.NationCache
 import net.horizonsend.ion.common.database.cache.nations.RelationCache
@@ -20,14 +17,12 @@ import net.horizonsend.ion.common.database.slPlayerId
 import net.horizonsend.ion.common.database.uuid
 import net.horizonsend.ion.common.extensions.success
 import net.horizonsend.ion.common.utils.miscellaneous.toCreditsString
+import net.horizonsend.ion.common.utils.text.*
 import net.horizonsend.ion.common.utils.text.colors.HEColorScheme
-import net.horizonsend.ion.common.utils.text.lineBreakWithCenterText
-import net.horizonsend.ion.common.utils.text.ofChildren
-import net.horizonsend.ion.common.utils.text.repeatString
-import net.horizonsend.ion.common.utils.text.template
 import net.horizonsend.ion.server.command.SLCommand
 import net.horizonsend.ion.server.features.cache.PlayerCache
 import net.horizonsend.ion.server.features.economy.city.TradeCities
+import net.horizonsend.ion.server.features.misc.ServerInboxes
 import net.horizonsend.ion.server.features.nations.NATIONS_BALANCE
 import net.horizonsend.ion.server.features.nations.region.Regions
 import net.horizonsend.ion.server.features.nations.region.types.RegionTerritory
@@ -43,11 +38,7 @@ import net.kyori.adventure.text.Component.newline
 import net.kyori.adventure.text.Component.text
 import net.kyori.adventure.text.event.ClickEvent
 import net.kyori.adventure.text.format.NamedTextColor
-import net.kyori.adventure.text.format.NamedTextColor.DARK_GREEN
-import net.kyori.adventure.text.format.NamedTextColor.GRAY
-import net.kyori.adventure.text.format.NamedTextColor.GREEN
-import net.kyori.adventure.text.format.NamedTextColor.RED
-import net.kyori.adventure.text.format.NamedTextColor.YELLOW
+import net.kyori.adventure.text.format.NamedTextColor.*
 import net.kyori.adventure.text.format.TextColor
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.minimessage.MiniMessage
@@ -56,8 +47,7 @@ import org.bukkit.entity.Player
 import org.litote.kmongo.eq
 import org.litote.kmongo.ne
 import org.litote.kmongo.updateOneById
-import java.util.Date
-import java.util.UUID
+import java.util.*
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -191,9 +181,12 @@ internal object SettlementCommand : SLCommand() {
 		val settlementId = requireSettlementIn(sender)
 		requireSettlementPermission(sender, settlementId, SettlementRole.Permission.INVITE)
 
-		val invitedPlayers = Settlement.findPropById(settlementId, Settlement::invites)
+		val raw = Settlement.findPropById(settlementId, Settlement::invites) ?: fail { "That settlement doesn't exist!" }
+		val invitedPlayers = raw.mapTo(mutableListOf()) { getPlayerName(it) }
 
-		sender.sendMessage(settlementMessageFormat("Invited Settlements: ", invitedPlayers?.joinToString { getPlayerName(it) }))
+		if (invitedPlayers.isEmpty()) fail { "No players have been invited to your settlement." }
+
+		sender.sendMessage(settlementMessageFormat("Invited Players: {0}", invitedPlayers.joinToString()))
 	}
 
 	@Subcommand("join")
@@ -877,5 +870,12 @@ internal object SettlementCommand : SLCommand() {
 		Settlement.setMotd(ownerSettlementId, null)
 
 		sender.success("Success: The motd was cleared.")
+	}
+
+	@Subcommand("broadcast")
+	fun onBroadcast(sender: Player, message: String) = asyncCommand(sender) {
+		val settlementId = requireSettlementIn(sender)
+		requireSettlementPermission(sender, settlementId, SettlementRole.Permission.BRODCAST)
+		ServerInboxes.sendToSettlementMembers(settlementId, message.miniMessage())
 	}
 }

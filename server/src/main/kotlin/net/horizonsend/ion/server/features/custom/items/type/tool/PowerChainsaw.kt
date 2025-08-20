@@ -6,10 +6,13 @@ import net.horizonsend.ion.server.features.custom.blocks.CustomBlocks.customBloc
 import net.horizonsend.ion.server.features.custom.items.component.CustomComponentTypes
 import net.horizonsend.ion.server.features.custom.items.component.CustomItemComponentManager
 import net.horizonsend.ion.server.features.custom.items.component.Listener.Companion.leftClickListener
+import net.horizonsend.ion.server.features.custom.items.type.tool.mods.ItemModRegistry
 import net.horizonsend.ion.server.features.custom.items.type.tool.mods.ItemModification
 import net.horizonsend.ion.server.features.custom.items.type.tool.mods.general.AutoReplantModifier
 import net.horizonsend.ion.server.features.custom.items.type.tool.mods.tool.chainsaw.ExtendedBar
+import net.horizonsend.ion.server.features.economy.bazaar.Bazaars
 import net.horizonsend.ion.server.features.multiblock.type.farming.Crop
+import net.horizonsend.ion.server.miscellaneous.utils.coordinates.toBlockKey
 import net.horizonsend.ion.server.miscellaneous.utils.coordinates.toLocation
 import net.horizonsend.ion.server.miscellaneous.utils.getBlockIfLoaded
 import net.horizonsend.ion.server.miscellaneous.utils.isFence
@@ -130,9 +133,14 @@ class PowerChainsaw(
 				powerManager.removePower(chainsawItem, chainsaw, (powerUse * usage.multiplier).roundToInt())
 			}
 
+			val collectorPresent = mods.contains(ItemModRegistry.COLLECTOR)
+
 			for ((dropLocation, items) in drops) {
-				val location = BlockPos.of(dropLocation).toLocation(origin.world)
-				items.forEach { origin.world.dropItemNaturally(location, it) }
+				val location = BlockPos.of(dropLocation).toLocation(origin.world).toCenterLocation()
+				items.forEach {
+					if (collectorPresent) Bazaars.giveOrDropItems(it, it.amount, player.inventory, location)
+					else origin.world.dropItemNaturally(location, it)
+				}
 			}
 
 			// Handle auto-replant
@@ -150,9 +158,8 @@ class PowerChainsaw(
 					continue
 				}
 
-				val key1 = BlockPos.asLong(adjacentX, adjacentY, adjacentZ)
-
-				if (key1 == BlockPos.asLong(x, y, z)) continue
+				val key1 = toBlockKey(adjacentX, adjacentY, adjacentZ)
+				if (key1 == toBlockKey(x, y, z)) continue
 
 				if (visited.containsKey(key1)) continue
 
